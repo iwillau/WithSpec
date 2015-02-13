@@ -11,7 +11,21 @@ class WithSpecRunner(object):
 
     def run(self, tests, printer):
         for test in tests:
-            printer.status(test)
+            if 'pending' in test.tags:
+                self.pending.append(test)
+                printer.warn(test)
+            elif 'skip' in test.tags:
+                self.skipped.append(test)
+                printer.warn(test)
+            else:
+                try:
+                    test.run()
+                    printer.success(test)
+                except KeyboardInterrupt:
+                    raise
+                except Exception, e:
+                    self.failed.append(test)
+                    printer.error(test, e.__class__.__name__)
         
         if len(self.failed) > 0:
             printer.new_line()
@@ -19,10 +33,10 @@ class WithSpecRunner(object):
             printer.new_line()
 
             for i, test in enumerate(self.failed):
-                printer.line('  {:d}) {}', i+1, test.full_name())
-                for error in test.errors:
-                    error.line(printer)
-                printer.new_line()
+                printer.line('  {:d}) {}', i+1, test.fullname())
+                #for error in test.errors:
+                #    error.line(printer)
+                #printer.new_line()
         printer.new_line()
 
 

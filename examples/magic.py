@@ -26,7 +26,9 @@ with describe(CoffeeMachine):
             return result[0]
 
         def it_can_take_one_cup():
-            pass
+            import time
+            time.sleep(10)
+            assert 1 == 2
 
         def it_can_take_two_cups():
             pass

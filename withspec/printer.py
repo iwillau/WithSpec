@@ -57,22 +57,29 @@ class Printer(object):
         for i in range(number):
             self.output.write('\n')
 
-    def status(self, test, error=None):
+    def success(self, test):
         if self.detailed:
             level = self.print_nested(test.parents())
-            if error:
-                self.red(test.name, level=level)
-            elif test.tags['pending'] or test.tags['skip']:
-                self.yellow(test.name, level=level)
-            else:
-                self.green(test.name, level=level)
+            self.green(test.name, level=level)
         else:
-            if error:
-                self.red('F', new_line=False)
-            elif test.tags['pending'] or test.tags['skip']:
-                self.yellow('*', new_line=False)
+            self.green('.', new_line=False)
+
+    def warn(self, test):
+        if self.detailed:
+            level = self.print_nested(test.parents())
+            self.yellow(test.name, level=level)
+        else:
+            self.yellow('*', new_line=False)
+
+    def error(self, test, info=None):
+        if self.detailed:
+            level = self.print_nested(test.parents())
+            if info is not None:
+                self.red('%s (%s)' % (test.name, info), level=level)
             else:
-                self.green('.', new_line=False)
+                self.red(test.name, level=level)
+        else:
+            self.red('F', new_line=False)
 
     def print_nested(self, nesting):
         if self.nesting == nesting:

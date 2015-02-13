@@ -44,7 +44,7 @@ class ContextElement(object):
                              (self.__class__.__name__, kwargs.keys()[0])
 
     def fullname(self):
-        return '%s:%s' % (':'.join([i.name for i in self.parents()]), self.name)
+        return '%s %s' % (' '.join([i.name for i in self.parents()]), self.name)
 
     def parents(self):
         location = []
@@ -83,24 +83,23 @@ class FixtureElement(ContextElement):
 
 
 class TestElement(ContextElement):
-    def run(self, arguments):
+    def execute(self, arguments):
         # Run just the single executable.
         # Arguments should have been gathered and provided
-        # (Generally by execute below)
-        pass 
+        # (Generally by `run` below)
+        pass
 
-    def execute(self):
+    def run(self):
         # Used to 'run' this test within its build
         responses = {}
         for element in self.stack:
-            responses[element.name] = element.run(responses)
+            responses[element.key] = element.execute(responses)
 
     def build(self):
         # Get ourselves ready to run
-        self.tags = {'pending': False,
-                     'skip': False}
+        self.tags = []
         if len(self.args) == 0:
-            self.tags['pending'] = True
+            self.tags.append('pending')
 
         stack = []
         stack += self.context.before_stack()

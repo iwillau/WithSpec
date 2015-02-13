@@ -94,3 +94,4 @@ class WithSpecCollector(object):
             if test is not None:
                 self.tests.append(test)
 
+
