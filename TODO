@@ -1,5 +1,2 @@
 
-spec.ini
-spec.cfg
-
-
+Nose plugin for code coverage

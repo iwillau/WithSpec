@@ -13,13 +13,11 @@ class Printer(object):
         the colour (if colour is turned on)
         yellow, red, green, cyan, blue
     '''
-    def __init__(self, colour=True, detailed=True, indent=None):
+    def __init__(self, colour=True, detailed=True, nested=True):
         self.colour = colour
         self.output = sys.stdout
-        if indent is None:
-            self.indent = '  '
-        else:
-            self.indent = str(indent)
+        self.nested = nested
+        self.indent = '  '
 
     def line(self, msg, *args, **kwargs):
         colour = kwargs.pop('colour', None)
@@ -59,4 +57,5 @@ class Printer(object):
             self.output.write('\n')
 
     def status(self, test):
-        self.line('.')
+        self.red('.', new_line=False)
+

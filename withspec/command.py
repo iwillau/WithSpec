@@ -3,6 +3,7 @@ import time
 import logging
 import textwrap
 import ConfigParser
+import random
 from StringIO import StringIO
 from argparse import ArgumentParser
 from .collector import WithSpecCollector
@@ -13,6 +14,8 @@ from .printer import Printer
 log = logging.getLogger(__name__)
 
 truthy = ('1', 'true', 't', 'y', 'yes', 'on')
+
+LOG_FORMAT = '[1;31m%(levelname)-5.6s [0m%(message)s'
 
 
 def asbool(value):
@@ -65,7 +68,8 @@ def process_argv(argv, config):
     parser.add_argument(
         '--seed',
         action='store',
-        default=config.pop('seed', None),
+        type=int,
+        default=config.pop('seed', random.randint(10000, 99999)),
         help='Provide the seed to the random orderer. This is provided ' \
              'whenever a test is run in random order, and can be provided ' \
              'to run them in the same order',
@@ -157,6 +161,7 @@ def run(argv=sys.argv[1:]):
     # WithSpec Logging
     # TODO: Let this be configured via ini file
     handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter(LOG_FORMAT))
     logger = logging.getLogger('withspec')
     logger.addHandler(handler)
     logger.propagate = False
@@ -165,16 +170,17 @@ def run(argv=sys.argv[1:]):
     else:
         logger.setLevel((4 - config['debug']) * 10)
 
-    collector = WithSpecCollector(random='random' == config['order'],
-                                  seed=config['seed'])
+    collector = WithSpecCollector()
     time_start = time.time()
     for location in config['locations']:
         collector.collect(location)
     time_loading = time_start - time.time()
-    log.info('Collected %s tests in %.4f seconds' % (collector.count(),
+    log.info('Collected %s tests in %.4f seconds' % (len(collector.tests),
                                                      time_loading))
 
     # Wrappers are built in this order deliberately
+    # In the future these should be configurable, so you
+    # could write a wrapper/plugin
     wrappers = []
     if not config['no_stdout']:
         wrappers.append(StdOutWrapper())
@@ -185,41 +191,35 @@ def run(argv=sys.argv[1:]):
         exception_exclude.append('withspec')
     wrappers.append(TraceBackWrapper(exclude=exception_exclude))
 
-    runner = WithSpecRunner(dryrun=config['dryrun'], 
-                            fail_fast=config['fail_fast'])
-
     printer = Printer(colour=config['colour'],
-                      detailed=config['format'] == 'detailed')
+                      detailed=config['format'] == 'detailed',
+                      nested=config['order'] != 'random')
+
+    runner = WithSpecRunner(dryrun=config['dryrun'], 
+                            fail_fast=config['fail_fast'],
+                            wrappers=wrappers,
+                            printer=printer)
+
+    if config['order'] == 'random':
+        random.seed(config['seed'])
+        random.shuffle(collector.tests)
+
     time_start = time.time()
-    for test in collector.tests():
-        runner.run(test)
-        printer.status(test)
-        printer.new_line(2)
+    runner.run(collector.tests)
     time_testing = time_start - time.time()
-
-    if len(runner.failed) > 0:
-        printer.new_line()
-        printer.line('Failures:')
-        printer.new_line()
-
-        for i, test in enumerate(runner.failed):
-            printer.line('  {:d}) {}', i+1, test.full_name())
-            for error in test.errors:
-                error.line(printer)
-            printer.new_line()
 
     printer.new_line()
     printer.line('Finished in {:.3f} seconds (specs took {:.3f} seconds to ' \
                   'load)', time_testing, time_loading)
     printer.red('{total:d} tests, {pending:d} pending, ' \
                 '{failed:d} failures, {skipped:d} skipped',
-                total=collector.count(),
+                total=len(collector.tests),
                 pending=len(runner.pending),
                 failed=len(runner.failed),
                 skipped=len(runner.skipped),
                 )
     printer.new_line()
-    if collector.seed is not None:
-        printer.line('Randomized with seed {:d}'.format(collector.seed))
+    if config['order'] == 'random':
+        printer.line('Randomized with seed {:d}'.format(config['seed']))
         printer.new_line()
 

@@ -33,6 +33,6 @@ setup(name='WithSpec',
       test_suite="river",
       entry_points="""\
       [console_scripts]
-      withspec = withspec.commands:run
+      withspec = withspec.command:run
       """,
       )

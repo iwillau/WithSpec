@@ -1,11 +1,29 @@
 
+
 class WithSpecRunner(object):
-    def __init__(self, fail_fast=False, dryrun=False):
+    def __init__(self, printer, wrappers, fail_fast=False, dryrun=False):
         self.fail_fast = fail_fast
         self.dryrun = dryrun
+        self.printer = printer
+        self.wrappers = wrappers
         self.failed = []
         self.skipped = []
         self.pending = []
+
+    def run(self, tests):
+        for test in tests:
+            print test
+
+        if len(self.failed) > 0:
+            printer.new_line()
+            printer.line('Failures:')
+            printer.new_line()
+
+            for i, test in enumerate(self.failed):
+                printer.line('  {:d}) {}', i+1, test.full_name())
+                for error in test.errors:
+                    error.line(printer)
+                printer.new_line()
 
 
 #import os

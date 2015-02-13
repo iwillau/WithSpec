@@ -16,8 +16,7 @@ log = logging.getLogger(__name__)
 
 
 class Context(object):
-    def __init__(self, name, parent=None, assertor=Assertions):
-        self.assertor = assertor
+    def __init__(self, name, parent=None):
         self.parent = parent
         self.name = name
         self.elements = []
@@ -42,7 +41,6 @@ class Context(object):
         parent = registry.current_context()
         return Context(description, 
                        parent=parent, 
-                       assertor=parent.assertor,
                        **kwargs)
 
     def add_element(self, name, element):
@@ -51,6 +49,7 @@ class Context(object):
                 name = element.__doc__
             element = UnknownElement(name=name, actual=element, context=self)
         self.elements.append(element)
+        return element
 
     def finalise(self):
         organised = {
@@ -60,23 +59,27 @@ class Context(object):
             'fixtures': {},
             'tests': []
         }
+        # Build a set of an arguments referenced locally
+        # Used to determine the 'easy' fixture's, ie, the ones
+        # referenced locally or in our parent chain
         arguments = set()
         for element in self.elements:
             arguments.update(element.args)
-        self.arguments = frozenset(arguments)
+        self.fixture_names = frozenset(arguments)
 
         for element in self.elements:
             name = element.name
             if isinstance(element, UnknownElement):
+                # Identify the explicit elements
                 if name == 'before':
                     element = BeforeElement(element)
                 elif name == 'after':
                     element = AfterElement(element)
                 elif name == 'around':
                     element = AroundElement(element)
-                elif name in arguments:
+                elif name in self.fixture_names:
                     element = FixtureElement(element)
-                # Else: Still Unknown
+
             if isinstance(element, BeforeElement):
                 organised['before'].append(element)
             elif isinstance(element, AfterElement):
@@ -89,103 +92,29 @@ class Context(object):
                 organised['tests'].append(element)
         self.elements = organised
 
-    @property
-    def it(self):
-        return self.test
+    def resolve_fixtures(self, fixture_names):
+        '''Given a set of fixture names that may be referenced, check that
+        any test aren't being referenced, and if they are, change them to
+        a fixture'''
+        fixture = None
+        for test in self.elements['tests']:
+            if test.name in fixture_names:
+                fixture = FixtureElement(test)
+                break
 
-    @property
-    def test(self):
-        context = CONTEXT_STACK[-1]
-        def decorator(*args, **kwargs):
-            if len(args) > 2:
-                raise TypeError, 'test() takes at most 2 positional ' \
-                                 'arguments (%d given)' % len(args)
-            for arg in args:
-                if inspect.isfunction(arg): 
-                    kwargs['func'] = arg
-                else:
-                    kwargs['name'] = arg
+        if fixture is not None:
+            self.elements['tests'].remove(test)
+            self.elements['fixtures'][fixture.name] = fixture
 
-            if 'func' not in kwargs:  # Decorating
-                def wrap(wrapped):
-                    context.add_test(func=wrapped, **kwargs)
-                    return wrapped
-                return wrap
-            else:
-                return context.add_test(**kwargs)
-        return decorator
+    def before_stack(self):
+        return []
 
-    def add_test(self, func=None, name=None, **kwargs):
-        test = Test(self, func, name, **kwargs)
-        TEST_STACK.append(test)
-        return test
+    def after_stack(self):
+        return []
 
-    @property
-    def let(self):
-        context = CONTEXT_STACK[-1]
-        def wrap_decorator(first_arg, value=None):
-            if inspect.isfunction(first_arg):
-                context.define(first_arg.__name__, first_arg)
-                return first_arg
-            elif value is not None:
-                context.define(first_arg, value)
-                return None
-            else:
-                def wrap(wrapped):
-                    context.define(first_arg, wrapped)
-                    return wrapped
-                return wrap
-        return wrap_decorator
+    def around_stack(self, wrapped):
+        return wrapped
 
-    def define(self, name, func):
-        if name in self.fixtures:
-            log.debug('Overwriting Fixture: %s' % name)
-        self.fixtures[name] = func
-
-    @property
-    def before(self):
-        return self.__hook_decorator('before')
-
-    @property
-    def after(self):
-        return self.__hook_decorator('after')
-
-    def __hook_decorator(self, hook_type):
-        context = CONTEXT_STACK[-1]
-        def wrap(first_arg, **kwargs):
-            if inspect.isfunction(first_arg):
-                context.hook(hook_type, first_arg)
-                return first_arg
-            else:
-                return context.hook(hook_type, None, **kwargs)
-        return wrap
-
-    def hook(self, hook_type, hook_callable, **kwargs):
-        if hook_type not in self.hooks:
-            raise ValueError('Invalid Hook Name')
-        hook = Hook(wrapped=hook_callable, **kwargs)
-        self.hooks[hook_type].append(hook)
-        return hook
-
-    def run_hooks(self, hook_type, resolver):
-        if hook_type not in self.hooks:
-            raise ValueError('Invalid Hook Name')
-        if self.parent is not None:
-            self.parent.run_hooks(hook_type, resolver)
-        for hook in self.hooks[hook_type]:
-            hook.run(resolver)
-
-    def resolve_fixture(self, name, resolver):
-        if name not in self.fixtures:
-            if self.parent is None:
-                return None
-            return self.parent.resolve_fixture(name, resolver)
-        log.debug('Calling Fixture: %s' % name)
-        fixture = self.fixtures[name]
-        if callable(fixture):
-            kwargs = resolve_args(fixture, resolver)
-            return fixture(**kwargs)
-        return fixture
 
 
 class Description(Context):

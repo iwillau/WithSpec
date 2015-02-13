@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 from .registry import get_registry
+from .elements import TestElement, UnknownElement
 
 log = logging.getLogger(__name__)
 
@@ -10,20 +11,21 @@ class WithSpecCatcher(dict):
     def __init__(self, collector, *args, **kwargs):
         self.registry = get_registry()
         self.collector = collector
-        self.contexts = []
+        self.elements = []
         dict.__init__(self, *args, **kwargs)
         self.module = self['__name__']
         self['__withspec_catcher__'] = self
 
     def __setitem__(self, name, value):
         dict.__setitem__(self, name, value)
-        if name[0:1] != '__':
+        if not name.startswith('__'):
             context = self.registry.current_context()
             if value.__module__ != self.module:
                 return
             if context is None:
                 return
-            context.add_element(name, value)
+            log.debug('Caught `%s`', name)
+            self.elements.append(context.add_element(name, value))
 
 
 class WithSpecCollector(object):
@@ -31,7 +33,7 @@ class WithSpecCollector(object):
         self.random = random
         self.seed = seed
         self.module = '__spec__'
-        self._tests = []
+        self.tests = []
 
     def collect(self, location):
         log.info('Browsing for tests in {}'.format(location))
@@ -80,10 +82,15 @@ class WithSpecCollector(object):
                 sys.path.remove(dirname)
             except ValueError:
                 pass
+        # Allow each Captured Element a chance to Resolve its args.
+        # This allows the Contexts to determine what args have been
+        # called, which lets them decide if a function is a fixture 
+        # or a test (if not labeled as such).
+        for element in file_globals.elements:
+             element.resolve_fixtures()
 
-    def count(self):
-        return len(self._tests)
-
-    def tests(self):
-        return []
+        for element in file_globals.elements:
+            test = element.build()
+            if test is not None:
+                self.tests.append(test)
 
