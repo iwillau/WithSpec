@@ -1,3 +1,4 @@
 
 Nose plugin for code coverage
 fail-fast
+line number specification

@@ -1,3 +1,4 @@
+import inspect
 import logging
 from .util import arg_names
 
@@ -30,6 +31,7 @@ class ContextElement(object):
             self.actual = inherit.actual
             self.args = inherit.args
             inherit.became = self  # should really only do this to Unknowns
+                                   # But we don't 'know' about them here
         else:
             self.key = kwargs.pop('key')
             self.name = kwargs.pop('name')
@@ -43,8 +45,9 @@ class ContextElement(object):
             raise TypeError, "%s() got an unexpected keyword argument '%s'" % \
                              (self.__class__.__name__, kwargs.keys()[0])
 
-    def fullname(self):
-        return '%s %s' % (' '.join([i.name for i in self.parents()]), self.name)
+    def fullname(self, spacer=' '):
+        parents = spacer.join([i.name for i in self.parents()])
+        return '%s%s%s' % (parents, spacer, self.name)
 
     def parents(self):
         location = []
@@ -64,6 +67,12 @@ class ContextElement(object):
 
     def build(self):
         return None
+
+    def definition(self):
+        '''Return where this element is defined'''
+        filename = inspect.getsourcefile(self.actual)
+        lines, lineno = inspect.getsourcelines(self.actual)
+        return '%s:%s' % (filename, lineno)
 
 
 class BeforeElement(ContextElement):
@@ -87,7 +96,10 @@ class TestElement(ContextElement):
         # Run just the single executable.
         # Arguments should have been gathered and provided
         # (Generally by `run` below)
-        pass
+        kwargs = {}
+        for arg in self.args:
+            kwargs[arg] = arguments.get(arg, None)
+        return self.actual(**kwargs)
 
     def run(self):
         # Used to 'run' this test within its build
@@ -96,6 +108,7 @@ class TestElement(ContextElement):
             responses[element.key] = element.execute(responses)
 
     def build(self):
+        log.info('Building %s', self.fullname('->'))
         # Get ourselves ready to run
         self.tags = []
         if len(self.args) == 0:

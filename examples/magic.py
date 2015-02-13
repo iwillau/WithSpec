@@ -25,9 +25,7 @@ with describe(CoffeeMachine):
         def filled_cup(result):
             return result[0]
 
-        def it_can_take_one_cup():
-            import time
-            time.sleep(10)
+        def it_can_sleep(result):
             assert 1 == 2
 
         def it_can_take_two_cups():

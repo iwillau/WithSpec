@@ -92,6 +92,8 @@ class Printer(object):
             elif new != self.nesting[i]:
                 deviated = True
             if deviated:
+                if i == 0:
+                    self.new_line()
                 self.line(new.name, level=i)
         self.nesting = nesting
         return i + 1

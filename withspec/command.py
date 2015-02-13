@@ -7,7 +7,7 @@ import random
 from StringIO import StringIO
 from argparse import ArgumentParser
 from .collector import WithSpecCollector
-from .wrappers import StdOutWrapper, LogWrapper, TraceBackWrapper
+from .hooks import StdOutHook, LogHook, TraceBackHook
 from .runner import WithSpecRunner
 from .printer import Printer
 
@@ -180,25 +180,24 @@ def run(argv=sys.argv[1:]):
     log.info('Collected %s tests in %.4f seconds' % (len(collector.tests),
                                                      time_loading))
 
-    # Wrappers are built in this order deliberately
+    hooks = []
     # In the future these should be configurable, so you
-    # could write a wrapper/plugin
-    wrappers = []
-    if not config['no_stdout']:
-        wrappers.append(StdOutWrapper())
+    # could write a wrapper/plugin, and add it here
+ 
+    # Our Hooks are built in this order deliberately
     if not config['no_logs']:
-        wrappers.append(LogWrapper())
-    exception_exclude = []
-    if not config['backtrace']:
-        exception_exclude.append('withspec')
-    wrappers.append(TraceBackWrapper(exclude=exception_exclude))
+        hooks.append(LogHook(config))
+    if not config['no_stdout']:
+        hooks.append(StdOutHook(config))
+    # TraceBackHook is mandatory, as it formats tracebacks
+    hooks.append(TraceBackHook(config))
 
     printer = Printer(colour=config['colour'],
                       detailed=config['format'] == 'detailed')
 
     runner = WithSpecRunner(dryrun=config['dryrun'], 
                             fail_fast=config['fail_fast'],
-                            wrappers=wrappers)
+                            hooks=hooks)
 
     if config['order'] == 'random':
         random.seed(config['seed'])
@@ -208,8 +207,9 @@ def run(argv=sys.argv[1:]):
     runner.run(collector.tests, printer)
     time_testing = time_start - time.time()
 
+
     printer.new_line()
-    printer.line('Finished in {:.3f} seconds (specs took {:.3f} seconds to ' \
+    printer.line('Finished in {:.3f} seconds (tests took {:.3f} seconds to ' \
                   'load)', time_testing, time_loading)
     printer.red('{total:d} tests, {pending:d} pending, ' \
                 '{failed:d} failures, {skipped:d} skipped',
@@ -219,6 +219,13 @@ def run(argv=sys.argv[1:]):
                 skipped=len(runner.skipped),
                 )
     printer.new_line()
+    if len(runner.failed) > 0:
+        printer.line('Failed Tests:')
+        printer.new_line()
+        for test in runner.failed:
+            printer.red('withspec %s' % test.definition(), new_line=False)
+            printer.cyan(' # {}'.format(test.fullname()))
+        printer.new_line()
     if config['order'] == 'random':
         printer.line('Randomized with seed {:d}'.format(config['seed']))
         printer.new_line()

@@ -1,10 +1,38 @@
+import logging
+
+log = logging.getLogger(__name__)
+
+
+class TestManager(object):
+    def __init__(self, hooks):
+        self.hooks = hooks
+        self.error = None
+
+    def __enter__(self):
+        for hook in self.hooks:
+            if hasattr(hook, 'before'):
+                log.debug('Running %s before', str(hook))
+                hook.before()
+        return self
+
+    def __exit__(self, exc, exv, bt):
+        if exc == KeyboardInterrupt:
+            return False  # User wants out, we'll leave.
+        # Run the 'after' hooks in reverse
+        for hook in reversed(self.hooks):
+            if hasattr(hook, 'after'):
+                log.debug('Running %s after', str(hook))
+                hook.after(exc, exv, bt)
+        if exc is not None:
+            self.error = exc.__name__
+        return True
 
 
 class WithSpecRunner(object):
-    def __init__(self, wrappers, fail_fast=False, dryrun=False):
+    def __init__(self, hooks, fail_fast=False, dryrun=False):
         self.fail_fast = fail_fast
         self.dryrun = dryrun
-        self.wrappers = wrappers
+        self.hooks = hooks
         self.failed = []
         self.skipped = []
         self.pending = []
@@ -14,19 +42,22 @@ class WithSpecRunner(object):
             if 'pending' in test.tags:
                 self.pending.append(test)
                 printer.warn(test)
-            elif 'skip' in test.tags:
+                continue
+            if 'skip' in test.tags:
                 self.skipped.append(test)
                 printer.warn(test)
+                continue
+            # Actually do a test!
+            with TestManager(self.hooks) as manager:
+                test.run()
+
+            if manager.error is None:
+                printer.success(test)
             else:
-                try:
-                    test.run()
-                    printer.success(test)
-                except KeyboardInterrupt:
-                    raise
-                except Exception, e:
-                    self.failed.append(test)
-                    printer.error(test, e.__class__.__name__)
+                self.failed.append(test)
+                printer.error(test, manager.error)
         
+        printer.new_line()
         if len(self.failed) > 0:
             printer.new_line()
             printer.line('Failures:')
@@ -37,7 +68,7 @@ class WithSpecRunner(object):
                 #for error in test.errors:
                 #    error.line(printer)
                 #printer.new_line()
-        printer.new_line()
+                printer.new_line()
 
 
 #import os
