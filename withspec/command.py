@@ -222,7 +222,7 @@ def run(argv=sys.argv[1:]):
     if len(runner.failed) > 0:
         printer.line('Failed Tests:')
         printer.new_line()
-        for test in runner.failed:
+        for test, output in runner.failed:
             printer.red('withspec %s' % test.definition(), new_line=False)
             printer.cyan(' # {}'.format(test.fullname()))
         printer.new_line()

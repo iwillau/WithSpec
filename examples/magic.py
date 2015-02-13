@@ -26,6 +26,7 @@ with describe(CoffeeMachine):
             return result[0]
 
         def it_can_sleep(result):
+            print 'wtf omg bbg'
             assert 1 == 2
 
         def it_can_take_two_cups():
@@ -65,7 +66,9 @@ with describe(CoffeeMachine):
 
             def the_cup_is_full(filled_cup):
                 '''it didn't spill'''
+                print 'whos a what now?'
                 filled_cup.assert_response('full', True)
+                
 
             def the_cup_has_spilt(filled_cup):
                 filled_cup.assert_response('spilt', True)
