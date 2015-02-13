@@ -74,6 +74,8 @@ class WithSpecRunner(object):
             else:
                 self.failed.append((test, manager.output))
                 printer.error(test, manager.error)
+                if self.fail_fast:
+                    break
         
         printer.new_line()
         if len(self.failed) > 0:
