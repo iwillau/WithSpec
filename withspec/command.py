@@ -157,6 +157,8 @@ def run(argv=sys.argv[1:]):
             config[key] = value
     
     config = process_argv(argv, config)
+    if config['format'] == 'd':
+        config['format'] = 'detailed'
 
     # WithSpec Logging
     # TODO: Let this be configured via ini file
@@ -192,20 +194,18 @@ def run(argv=sys.argv[1:]):
     wrappers.append(TraceBackWrapper(exclude=exception_exclude))
 
     printer = Printer(colour=config['colour'],
-                      detailed=config['format'] == 'detailed',
-                      nested=config['order'] != 'random')
+                      detailed=config['format'] == 'detailed')
 
     runner = WithSpecRunner(dryrun=config['dryrun'], 
                             fail_fast=config['fail_fast'],
-                            wrappers=wrappers,
-                            printer=printer)
+                            wrappers=wrappers)
 
     if config['order'] == 'random':
         random.seed(config['seed'])
         random.shuffle(collector.tests)
 
     time_start = time.time()
-    runner.run(collector.tests)
+    runner.run(collector.tests, printer)
     time_testing = time_start - time.time()
 
     printer.new_line()

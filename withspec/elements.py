@@ -24,12 +24,14 @@ class ContextElement(object):
         if len(args) == 1:
             inherit = args[0]
             # ???: self.__dict__.update(inherit.__dict__)
+            self.key = inherit.key
             self.name = inherit.name
             self.context = inherit.context
             self.actual = inherit.actual
             self.args = inherit.args
             inherit.became = self  # should really only do this to Unknowns
         else:
+            self.key = kwargs.pop('key')
             self.name = kwargs.pop('name')
             self.actual = kwargs.pop('actual')
             self.context = kwargs.pop('context')
@@ -42,7 +44,7 @@ class ContextElement(object):
                              (self.__class__.__name__, kwargs.keys()[0])
 
     def fullname(self):
-        return '%s:%s' % (':'.join(self.location()), self.name)
+        return '%s:%s' % (':'.join([i.name for i in self.parents()]), self.name)
 
     def parents(self):
         location = []
@@ -54,11 +56,11 @@ class ContextElement(object):
         return location
 
     def resolve_fixtures(self):
-        fixture_names = set()
+        fixture_keys = set()
         for context in self.parents():
-            fixture_names.update(context.fixture_names)
+            fixture_keys.update(context.fixture_keys)
         for context in self.parents():
-            context.resolve_fixtures(fixture_names)
+            context.resolve_fixtures(fixture_keys)
 
     def build(self):
         return None

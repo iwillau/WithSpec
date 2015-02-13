@@ -25,6 +25,12 @@ with describe(CoffeeMachine):
         def filled_cup(result):
             return result[0]
 
+        def it_can_take_one_cup():
+            pass
+
+        def it_can_take_two_cups():
+            pass
+
         with context('when pressing espresso'):
             def before(subject):
                 subject.press('Espresso')

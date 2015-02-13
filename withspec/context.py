@@ -43,11 +43,14 @@ class Context(object):
                        parent=parent, 
                        **kwargs)
 
-    def add_element(self, name, element):
+    def add_element(self, key, element):
         if not isinstance(element, ContextElement):
             if element.__doc__ is not None and len(element.__doc__) > 0:
                 name = element.__doc__
-            element = UnknownElement(name=name, actual=element, context=self)
+            else:
+                name = key.replace('_', ' ')
+            element = UnknownElement(key=key, name=name, 
+                                     actual=element, context=self)
         self.elements.append(element)
         return element
 
@@ -65,19 +68,19 @@ class Context(object):
         arguments = set()
         for element in self.elements:
             arguments.update(element.args)
-        self.fixture_names = frozenset(arguments)
+        self.fixture_keys = frozenset(arguments)
 
         for element in self.elements:
-            name = element.name
+            key = element.key
             if isinstance(element, UnknownElement):
                 # Identify the explicit elements
-                if name == 'before':
+                if key == 'before':
                     element = BeforeElement(element)
-                elif name == 'after':
+                elif key == 'after':
                     element = AfterElement(element)
-                elif name == 'around':
+                elif key == 'around':
                     element = AroundElement(element)
-                elif name in self.fixture_names:
+                elif key in self.fixture_keys:
                     element = FixtureElement(element)
 
             if isinstance(element, BeforeElement):
@@ -87,24 +90,24 @@ class Context(object):
             elif isinstance(element, AroundElement):
                 organised['around'].append(element)
             elif isinstance(element, FixtureElement):
-                organised['fixtures'][element.name] = element
+                organised['fixtures'][element.key] = element
             else:
                 organised['tests'].append(element)
         self.elements = organised
 
-    def resolve_fixtures(self, fixture_names):
-        '''Given a set of fixture names that may be referenced, check that
+    def resolve_fixtures(self, fixture_keys):
+        '''Given a set of fixture keys that may be referenced, check that
         any test aren't being referenced, and if they are, change them to
         a fixture'''
         fixture = None
         for test in self.elements['tests']:
-            if test.name in fixture_names:
+            if test.key in fixture_keys:
                 fixture = FixtureElement(test)
                 break
 
         if fixture is not None:
             self.elements['tests'].remove(test)
-            self.elements['fixtures'][fixture.name] = fixture
+            self.elements['fixtures'][fixture.key] = fixture
 
     def before_stack(self):
         return []
@@ -114,7 +117,6 @@ class Context(object):
 
     def around_stack(self, wrapped):
         return wrapped
-
 
 
 class Description(Context):

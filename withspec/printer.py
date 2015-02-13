@@ -13,11 +13,12 @@ class Printer(object):
         the colour (if colour is turned on)
         yellow, red, green, cyan, blue
     '''
-    def __init__(self, colour=True, detailed=True, nested=True):
+    def __init__(self, colour=True, detailed=True):
         self.colour = colour
         self.output = sys.stdout
-        self.nested = nested
+        self.detailed = detailed
         self.indent = '  '
+        self.nesting = []
 
     def line(self, msg, *args, **kwargs):
         colour = kwargs.pop('colour', None)
@@ -56,6 +57,35 @@ class Printer(object):
         for i in range(number):
             self.output.write('\n')
 
-    def status(self, test):
-        self.red('.', new_line=False)
+    def status(self, test, error=None):
+        if self.detailed:
+            level = self.print_nested(test.parents())
+            if error:
+                self.red(test.name, level=level)
+            elif test.tags['pending'] or test.tags['skip']:
+                self.yellow(test.name, level=level)
+            else:
+                self.green(test.name, level=level)
+        else:
+            if error:
+                self.red('F', new_line=False)
+            elif test.tags['pending'] or test.tags['skip']:
+                self.yellow('*', new_line=False)
+            else:
+                self.green('.', new_line=False)
+
+    def print_nested(self, nesting):
+        if self.nesting == nesting:
+            return len(nesting) 
+        deviated = False
+        i = 0
+        for i, new in enumerate(nesting):
+            if i >= len(self.nesting):
+                deviated = True
+            elif new != self.nesting[i]:
+                deviated = True
+            if deviated:
+                self.line(new.name, level=i)
+        self.nesting = nesting
+        return i + 1
 
