@@ -32,7 +32,6 @@ class Assertions(unittest.TestCase):
             self.responses[element.key] = element.execute(self.responses)
 
     def runTest(self):
-
         for element in self.actual:
             self.responses[element.key] = element.execute(self.responses)
 
@@ -41,6 +40,12 @@ class Assertions(unittest.TestCase):
 
     def assertNotContains(self, container, member, msg=None):
         return self.assertNotIn(member, container, msg)
+
+    def assertLength(self, container, length, msg=None):
+        return self.assertEqual(len(container), length, msg)
+
+    def assertMethodReturns(self, obj, name, response, msg=None):
+        self.assertEqual(getattr(obj, name)(), response)
 
     def assertor(self):
         def wrap(something):

@@ -115,8 +115,8 @@ class TestElement(ContextElement):
         log.info('Executing Test %s' % self.name)
         kwargs = {}
         assertor = Assertions()
-        if 'test' in self.args:
-            kwargs['test'] = assertor.assertor
+        if 'test' in self.args and 'test' not in arguments:
+            arguments['test'] = assertor
 
         for arg in self.args:
             value = arguments.get(arg, None)
@@ -132,7 +132,6 @@ class TestElement(ContextElement):
 
     def run(self):
         # Used to 'run' this test within its build
-        print [i.name for i in self.stack]
         responses = {}
         for element in self.stack:
             responses[element.key] = element.execute(responses)

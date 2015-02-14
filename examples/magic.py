@@ -9,55 +9,40 @@ from coffee import (
 
 with describe(CoffeeMachine):
     def before(subject, cups):
-        print 'BEFORE ONE'
         subject.turn_on()
-        print 'PLACING %s' % cups
         subject.place_cups(cups)
 
     def after(subject):
-        print 'AFTER ONE'
         subject.turn_off()
 
     def result(subject):
-        print 'RESULT'
         return subject.take_cup()
 
-    with context('one cup of espresso'):
+    with context('one espresso cup'):
         def cups():
-            print 'CUPS ARE HERE'
             return [EspressoCup()]
 
         def filled_cup(result):
-            print 'FILLED CUP'
             return result
-
-        def it_can_sleep(filled_cup):
-            print 'TEST ONE'
-            print 'wtf omg bbg'
-            print filled_cup
-            assert 1 == 1
-
-        def it_can_take_two_cups():
-            pass
 
         with context('when pressing espresso'):
             def before(subject):
                 subject.press('Espresso')
 
             def it_has_one_cup(result):
-                result.assert_length(1)
+                result.is_instance(EspressoCup)
 
             def it_has_no_milk(result):
-                print result.subject
                 result.not_contains('milk')
 
-            def it_is_the_right_temperature(test, result):
-                test.assert_smaller(result.temperature, 96)
-                test.assert_larger(result.temperature, 92)
+            def it_is_the_right_temperature(test, subject):
+                cup = subject.take_cup()
+                test.assertLess(cup.temperature, 96)
+                test.assertGreater(cup.temperature, 92)
 
-            def the_cup_is_full(filled_cup):
+            def the_cup_is_full(test, filled_cup):
                 '''it didn't spill'''
-                filled_cup.assert_response('full', True)
+                test.assertTrue(filled_cup.full)
 
             def it_tastes_good():
                 # Not sure how to test this yet
@@ -68,19 +53,17 @@ with describe(CoffeeMachine):
                 subject.press('Cappuccino')
 
             def it_has_one_cup(result):
-                result.assert_length(1)
+                result.is_instance(EspressoCup)
 
-            def it_has_milk(filled_cup):
-                result.assert_contains('milk')
+            def it_has_milk(result):
+                result.contains('milk')
 
-            def the_cup_is_full(filled_cup):
-                '''it didn't spill'''
-                print 'whos a what now?'
-                filled_cup.assert_response('full', True)
+            def the_cup_is_full(test, filled_cup):
+                '''it did spill'''
+                test.assertTrue(filled_cup.full)
                 
-
-            def the_cup_has_spilt(filled_cup):
-                filled_cup.assert_response('spilt', True)
+            def the_cup_has_spilt(test, filled_cup):
+                test.assertTrue(filled_cup.spilt)
 
             def it_tastes_good():
                 # Not sure how to test this yet
@@ -88,12 +71,53 @@ with describe(CoffeeMachine):
             
     with context('one cappuccino cup'):
         def cups():
-            return [Cappuccino()]
+            return [CappuccinoCup()]
 
         def filled_cup(result):
-            return result[0]
+            return result
+
+        with context('when pressing espresso'):
+            def before(subject):
+                subject.press('Espresso')
+
+            def it_has_one_cup(result):
+                result.is_instance(CappuccinoCup)
+
+            def it_has_no_milk(result):
+                result.not_contains('milk')
+
+            def it_is_the_right_temperature(test, subject):
+                cup = subject.take_cup()
+                test.assertLess(cup.temperature, 88)
+                test.assertGreater(cup.temperature, 82)
+
+            def the_cup_is_full(test, filled_cup):
+                '''it didn't spill'''
+                test.assertFalse(filled_cup.full)
+
+            def it_tastes_good():
+                # Not sure how to test this yet
+                pass
+
+        with context('when pressing cappuccino'):
+            def before(subject):
+                subject.press('Cappuccino')
+
+            def it_has_one_cup(result):
+                result.is_instance(CappuccinoCup)
+
+            def it_has_milk(result):
+                result.contains('milk')
+
+            def the_cup_is_full(test, filled_cup):
+                '''it did spill'''
+                test.assertTrue(filled_cup.full)
+                
+            def the_cup_has_not_spilt(test, filled_cup):
+                test.assertFalse(filled_cup.spilt)
+
+            def it_tastes_good():
+                # Not sure how to test this yet
+                pass
 
 
-with describe('Filters'):
-    def subject(coffee_filter):
-        return Machine(filter=coffee_filter)
