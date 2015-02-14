@@ -9,25 +9,33 @@ from coffee import (
 
 with describe(CoffeeMachine):
     def before(subject, cups):
+        print 'BEFORE ONE'
         subject.turn_on()
+        print 'PLACING %s' % cups
         subject.place_cups(cups)
 
     def after(subject):
+        print 'AFTER ONE'
         subject.turn_off()
 
     def result(subject):
-        return subject.take_cups()
+        print 'RESULT'
+        return subject.take_cup()
 
     with context('one cup of espresso'):
         def cups():
+            print 'CUPS ARE HERE'
             return [EspressoCup()]
 
         def filled_cup(result):
-            return result[0]
+            print 'FILLED CUP'
+            return result
 
-        def it_can_sleep(result):
+        def it_can_sleep(filled_cup):
+            print 'TEST ONE'
             print 'wtf omg bbg'
-            assert 1 == 2
+            print filled_cup
+            assert 1 == 1
 
         def it_can_take_two_cups():
             pass
@@ -40,7 +48,8 @@ with describe(CoffeeMachine):
                 result.assert_length(1)
 
             def it_has_no_milk(result):
-                result.assert_not_contains('milk')
+                print result.subject
+                result.not_contains('milk')
 
             def it_is_the_right_temperature(test, result):
                 test.assert_smaller(result.temperature, 96)
@@ -83,10 +92,6 @@ with describe(CoffeeMachine):
 
         def filled_cup(result):
             return result[0]
-
-        def around(test):
-            # Do A MOCK HERE
-            pass
 
 
 with describe('Filters'):

@@ -69,7 +69,7 @@ def process_argv(argv, config):
         '--seed',
         action='store',
         type=int,
-        default=config.pop('seed', random.randint(10000, 99999)),
+        default=config.pop('seed', random.randint(1000, 9999)),
         help='Provide the seed to the random orderer. This is provided ' \
              'whenever a test is run in random order, and can be provided ' \
              'to run them in the same order',

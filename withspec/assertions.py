@@ -1,22 +1,40 @@
 import unittest
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class Assertions(unittest.TestCase):
     '''A Wrapper to make all of the standard assertions available to 
     the tests. Can also be used to wrap the Test, so another framework
     (such as nose) knows how to run this test'''
-    def __init__(self, test):
+    def __init__(self, test=None):
         unittest.TestCase.__init__(self)
         self.test = test
+        self.responses = {}
+        self.after = []
+        self.actual = []
 
     def setUp(self):
-        self.test.before()
+        # we want to run all the `before` elements here.
+        # but an fixtures that exist between the last before
+        # and the test should be run in `runTest`
+        for element in self.test.stack:
+            if element.is_before():
+                self.responses[element.key] = element.execute(self.responses)
+            elif element.is_after():
+                self.after.append(element)
+            else:
+                self.actual.append(element)
 
     def tearDown(self):
-        self.test.after()
+        for element in self.after:
+            self.responses[element.key] = element.execute(self.responses)
 
     def runTest(self):
-        self.test.run()
+
+        for element in self.actual:
+            self.responses[element.key] = element.execute(self.responses)
 
     def assertContains(self, container, member, msg=None):
         return self.assertIn(member, container, msg)
@@ -24,7 +42,10 @@ class Assertions(unittest.TestCase):
     def assertNotContains(self, container, member, msg=None):
         return self.assertNotIn(member, container, msg)
 
-
+    def assertor(self):
+        def wrap(something):
+            return AssertionSubject(self, something)
+        return wrap
 
 
 class AssertionSubject(object):
@@ -75,7 +96,6 @@ class AssertionSubject(object):
         
         for name in combinations(name):
             log.debug("Trying assertion method '%s'" % name)
-            print("Trying assertion method '%s'" % name)
             if hasattr(self.wrapped, name):
                 break
 

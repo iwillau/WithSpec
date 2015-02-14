@@ -87,7 +87,7 @@ class WithSpecCollector(object):
         # called, which lets them decide if a function is a fixture 
         # or a test (if not labeled as such).
         for element in file_globals.elements:
-             element.resolve_fixtures()
+            element.resolve_fixtures()
 
         for element in file_globals.elements:
             test = element.build()

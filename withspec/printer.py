@@ -24,9 +24,11 @@ class Printer(object):
         colour = kwargs.pop('colour', None)
         new_line = kwargs.pop('new_line', True)
         level = kwargs.pop('level', 0)
+        raw = kwargs.pop('raw', False)
         if self.colour and colour in COLOR_CODES:
             msg = COLOR_FMT.format(COLOR_CODES[colour], msg)
-        msg = msg.format(*args, **kwargs)
+        if not raw:
+            msg = msg.format(*args, **kwargs)
         if level > 0:
             self.output.write(self.indent * level)
         self.output.write(msg)

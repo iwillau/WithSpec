@@ -14,11 +14,11 @@ class StdOutHook(object):
         self.out_buffer = StringIO()
         self.err_buffer = StringIO()
 
-    def before(self):
+    def before(self, test):
         sys.stdout = self.out_buffer
         sys.stderr = self.err_buffer
 
-    def after(self, exc, exv, bt):
+    def after(self, test, exc, exv, bt):
         # As we are restoring things to sys, 
         # We cannot be a generator
         sys.stdout = self.stdout
@@ -56,7 +56,7 @@ class LogHook(object):
         )
         
 
-    def before(self):
+    def before(self, test):
         self.root_logger.addHandler(self.handler)
         # We may have to clear out the handlers here ??
         # Or let the StdOut Hook deal with it ?
@@ -64,7 +64,7 @@ class LogHook(object):
         self.root_logger.setLevel(logging.NOTSET)
 
 
-    def after(self, exc, exv, bt):
+    def after(self, test, exc, exv, bt):
         # Restore the Level
         self.root_logger.setLevel(self.level)
         # Remove the Handler
@@ -93,11 +93,16 @@ class TraceBackHook(object):
             self.exclude = os.path.dirname(module.__file__)
         else:
             self.exclude = None
-    
-    def after(self, exc, exv, bt):
+
+    def after(self, test, exc, exv, bt):
         if exc is not None:
+            testfile = test.filename()
+            seen_testfile = False
             for filename, lineno, name, line in reversed(extract_tb(bt)):
-                if filename.startswith(self.exclude):
+                if seen_testfile and self.exclude is not None and \
+                   filename.startswith(self.exclude):
                     break
+                if filename == testfile:
+                    seen_testfile = True
                 yield '# %s:%d:in %s' % (filename, lineno, name)
 

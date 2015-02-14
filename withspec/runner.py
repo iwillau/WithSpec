@@ -6,17 +6,20 @@ log = logging.getLogger(__name__)
 def exception_formatter(ex):
     lines = []
     text = str(ex)
+    if len(text) == 0:
+        lines.append('Failure/Error: [%s]' % ex.__class__.__name__)
     for line in text.splitlines():
         if len(lines) == 0:
-            line = 'Failure/Error: %s' % line
+            line = 'Failure/Error: %s' % line.strip()
         else:
-            line = '  %s' % line
+            line = '  %s' % line.strip()
         lines.append(line)
     return lines
 
 
 class TestManager(object):
-    def __init__(self, hooks):
+    def __init__(self, test, hooks):
+        self.test = test
         self.hooks = hooks
         self.error = None
         self.output = []
@@ -25,7 +28,7 @@ class TestManager(object):
         for hook in self.hooks:
             if hasattr(hook, 'before'):
                 log.debug('Running %s before', str(hook))
-                hook.before()
+                hook.before(self.test)
         return self
 
     def __exit__(self, exc, exv, bt):
@@ -36,7 +39,7 @@ class TestManager(object):
         for hook in reversed(self.hooks):
             if hasattr(hook, 'after'):
                 log.debug('Running %s after', str(hook))
-                output = hook.after(exc, exv, bt)
+                output = hook.after(self.test, exc, exv, bt)
                 if output is not None:
                     self.output.append(output)
 
@@ -66,7 +69,7 @@ class WithSpecRunner(object):
                 printer.warn(test)
                 continue
             # Actually do a test!
-            with TestManager(self.hooks) as manager:
+            with TestManager(test, self.hooks) as manager:
                 test.run()
 
             if manager.error is None:
@@ -90,7 +93,7 @@ class WithSpecRunner(object):
                 for hook_number, error in enumerate(output):
                     colour = colours[hook_number%len(colours)]
                     for line in error:
-                        printer.line(line, level=2, colour=colour)
+                        printer.line(line, level=2, colour=colour, raw=True)
                 printer.new_line()
 
 

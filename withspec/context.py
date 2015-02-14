@@ -6,7 +6,6 @@ from .elements import (
     UnknownElement, 
     BeforeElement,
     AfterElement,
-    AroundElement,
     FixtureElement,
     TestElement,
 )
@@ -58,7 +57,6 @@ class Context(object):
         organised = {
             'before': [],
             'after': [],
-            'around': [],
             'fixtures': {},
             'tests': []
         }
@@ -78,8 +76,6 @@ class Context(object):
                     element = BeforeElement(element)
                 elif key == 'after':
                     element = AfterElement(element)
-                elif key == 'around':
-                    element = AroundElement(element)
                 elif key in self.fixture_keys:
                     element = FixtureElement(element)
 
@@ -87,8 +83,6 @@ class Context(object):
                 organised['before'].append(element)
             elif isinstance(element, AfterElement):
                 organised['after'].append(element)
-            elif isinstance(element, AroundElement):
-                organised['around'].append(element)
             elif isinstance(element, FixtureElement):
                 organised['fixtures'][element.key] = element
             else:
@@ -109,19 +103,61 @@ class Context(object):
             self.elements['tests'].remove(test)
             self.elements['fixtures'][fixture.key] = fixture
 
-    def before_stack(self):
-        return []
+    def fixture_resolver(self):
+        found = set()
+        def resolve(arg):
+            '''Given a single argument name, traverse the context stack for
+            a fixture with the correct name.
+            Only return the fixture
+            '''
+            if arg in found:
+                return
+            context = self
+            while context is not None:
+                fixture = context.elements['fixtures'].get(arg, None)
+                if fixture is not None:
+                    found.add(fixture.name)  # Stop the double recursion
+                    for arg in fixture.args:
+                        for sub_fixture in resolve(arg):
+                            yield sub_fixture
+                    yield fixture
+                    break
+                context = context.parent
 
-    def after_stack(self):
-        return []
+        return resolve
 
-    def around_stack(self, wrapped):
-        return wrapped
+    def before_stack(self, resolver):
+        if self.parent is not None:
+            for element in self.parent.before_stack(resolver):
+                yield element
+        for element in self.elements['before']:
+            for arg in element.args:
+                for fixture in resolver(arg):
+                    yield fixture
+            yield element
+
+    def after_stack(self, resolver):
+        if self.parent is not None:
+            for element in self.parent.after_stack(resolver):
+                yield element
+        for element in self.elements['after']:
+            for arg in element.args:
+                for fixture in resolver(arg):
+                    yield fixture
+            yield element
 
 
 class Description(Context):
     def __init__(self, described, **kwargs):
         name = str(described)
         Context.__init__(self, name, **kwargs)
+        def subject():
+            if callable(described):
+                return described()
+            return described
 
+        self.elements.append(FixtureElement(key='subject',
+                                            name='subject',
+                                            actual=subject,
+                                            context=self))
 

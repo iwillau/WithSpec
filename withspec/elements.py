@@ -1,6 +1,7 @@
 import inspect
 import logging
 from .util import arg_names
+from .assertions import Assertions, AssertionSubject
 
 log = logging.getLogger(__name__)
 
@@ -70,39 +71,68 @@ class ContextElement(object):
 
     def definition(self):
         '''Return where this element is defined'''
-        filename = inspect.getsourcefile(self.actual)
         lines, lineno = inspect.getsourcelines(self.actual)
-        return '%s:%s' % (filename, lineno)
+        return '%s:%s' % (self.filename(), lineno)
+
+    def filename(self):
+        return inspect.getsourcefile(self.actual)
 
 
 class BeforeElement(ContextElement):
-    pass
-
-
-class AfterElement(ContextElement):
-    pass
-
-
-class AroundElement(ContextElement):
-    pass
-
-
-class FixtureElement(ContextElement):
-    pass
-
-
-class TestElement(ContextElement):
     def execute(self, arguments):
-        # Run just the single executable.
-        # Arguments should have been gathered and provided
-        # (Generally by `run` below)
         kwargs = {}
         for arg in self.args:
             kwargs[arg] = arguments.get(arg, None)
         return self.actual(**kwargs)
 
+
+class AfterElement(ContextElement):
+    def execute(self, arguments):
+        kwargs = {}
+        for arg in self.args:
+            kwargs[arg] = arguments.get(arg, None)
+        return self.actual(**kwargs)
+
+
+class FixtureElement(ContextElement):
+    def execute(self, arguments):
+        kwargs = {}
+        for arg in self.args:
+            kwargs[arg] = arguments.get(arg, None)
+        return self.actual(**kwargs)
+
+
+class TestElement(ContextElement):
+    def __init__(self, *args, **kwargs):
+        super(TestElement, self).__init__(*args, **kwargs)
+        self.tags = set()
+
+    def execute(self, arguments):
+        # Run just the single executable.
+        # Arguments should have been gathered and provided
+        # (Generally by `run` below)
+
+        log.info('Executing Test %s' % self.name)
+        kwargs = {}
+        assertor = Assertions()
+        if 'test' in self.args:
+            kwargs['test'] = assertor.assertor
+
+        for arg in self.args:
+            value = arguments.get(arg, None)
+            if value is None:
+                log.warn('Could not resolve argument `%s` for `%s`', 
+                         arg, self.name)
+            kwargs[arg] = value
+
+        if 'result' in self.args:
+            kwargs['result'] = AssertionSubject(assertor, kwargs['result'])
+
+        return self.actual(**kwargs)
+
     def run(self):
         # Used to 'run' this test within its build
+        print [i.name for i in self.stack]
         responses = {}
         for element in self.stack:
             responses[element.key] = element.execute(responses)
@@ -110,14 +140,20 @@ class TestElement(ContextElement):
     def build(self):
         log.info('Building %s', self.fullname('->'))
         # Get ourselves ready to run
-        self.tags = []
         if len(self.args) == 0:
-            self.tags.append('pending')
-
+            self.tags.add('pending')
+            return self
+        resolver = self.context.fixture_resolver()
         stack = []
-        stack += self.context.before_stack()
-        stack.append(self.context.around_stack(self))
-        stack += self.context.after_stack()
+        stack += self.context.before_stack(resolver)
+
+        for arg in self.args:
+            for fixture in resolver(arg):
+                stack.append(fixture)
+        stack.append(self)
+
+        stack += self.context.after_stack(resolver)
+
         self.stack = stack
         return self
 
@@ -127,5 +163,4 @@ class UnknownElement(ContextElement):
         if self.became is not None:
             return self.became.build()
         return TestElement(self).build()
-
 
