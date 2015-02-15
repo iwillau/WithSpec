@@ -37,12 +37,12 @@ with describe(CoffeeMachine):
 
             def it_is_the_right_temperature(test, subject):
                 cup = subject.take_cup()
-                test.assertLess(cup.temperature, 46)
+                test.assertLess(cup.temperature, 96)
                 test.assertGreater(cup.temperature, 92)
 
             def the_cup_is_full(test, filled_cup):
                 '''it didn't spill'''
-                test.assertFalse(filled_cup.full)
+                test.assertTrue(filled_cup.full)
 
             def it_tastes_good():
                 # Not sure how to test this yet

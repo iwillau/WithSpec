@@ -1,6 +1,7 @@
+from withspec import describe, context
 
 
-with describe(Mock):
+with describe('Mock'):
     def before(subject):
         subject.my_method()
 
@@ -8,6 +9,7 @@ with describe(Mock):
         return subject.second()
 
     def the_test(subject, something):
-        assert subject called my_method once
-        assert subject called second one
+        pass
+        #assert subject called my_method once
+        #assert subject called second one
 

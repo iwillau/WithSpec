@@ -34,5 +34,7 @@ setup(name='WithSpec',
       entry_points="""\
       [console_scripts]
       withspec = withspec.command:run
+      [nose.plugins.0.10]
+      withspec = withspec.nose_plugin:NosePlugin
       """,
       )

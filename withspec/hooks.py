@@ -55,14 +55,12 @@ class LogHook(object):
                               '[%(name)s] %(message)s')
         )
         
-
     def before(self, test):
         self.root_logger.addHandler(self.handler)
         # We may have to clear out the handlers here ??
         # Or let the StdOut Hook deal with it ?
         self.level = self.root_logger.getEffectiveLevel()
         self.root_logger.setLevel(logging.NOTSET)
-
 
     def after(self, test, exc, exv, bt):
         # Restore the Level
