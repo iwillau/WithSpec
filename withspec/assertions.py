@@ -6,34 +6,13 @@ log = logging.getLogger(__name__)
 
 class Assertions(unittest.TestCase):
     '''A Wrapper to make all of the standard assertions available to 
-    the tests. Can also be used to wrap the Test, so another framework
-    (such as nose) knows how to run this test'''
-    def __init__(self, test=None):
+    the tests. This is the default Assertor. '''
+    def __init__(self):
         unittest.TestCase.__init__(self)
-        self.test = test
-        self.responses = {}
-        self.after = []
-        self.actual = []
-
-    def setUp(self):
-        # we want to run all the `before` elements here.
-        # but an fixtures that exist between the last before
-        # and the test should be run in `runTest`
-        for element in self.test.stack:
-            if element.is_before():
-                self.responses[element.key] = element.execute(self.responses)
-            elif element.is_after():
-                self.after.append(element)
-            else:
-                self.actual.append(element)
-
-    def tearDown(self):
-        for element in self.after:
-            self.responses[element.key] = element.execute(self.responses)
 
     def runTest(self):
-        for element in self.actual:
-            self.responses[element.key] = element.execute(self.responses)
+        # Unittest requires this method to exist
+        raise TypeError, 'Assertions is not a Test'
 
     def assertContains(self, container, member, msg=None):
         return self.assertIn(member, container, msg)
@@ -47,10 +26,8 @@ class Assertions(unittest.TestCase):
     def assertMethodReturns(self, obj, name, response, msg=None):
         self.assertEqual(getattr(obj, name)(), response)
 
-    def assertor(self):
-        def wrap(something):
-            return AssertionSubject(self, something)
-        return wrap
+    def __call__(self, subject):
+        return AssertionSubject(self, subject)
 
 
 class AssertionSubject(object):

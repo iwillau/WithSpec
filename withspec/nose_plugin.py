@@ -1,9 +1,45 @@
 import logging
 import os
-
+import unittest
+from withspec.collector import WithSpecCollector
 from nose.plugins import Plugin
 
 log = logging.getLogger('nose.plugins.withspec')
+
+
+class WithSpecWrapper(unittest.TestCase):
+    def __init__(self, test):
+        unittest.TestCase.__init__(self)
+        self.test = test
+        self.responses = {}
+        self.after = []
+        self.actual = []
+
+    def setUp(self):
+        if 'pending' in self.test.tags:
+            self.skipTest('Test is pending')
+        if 'skip' in self.test.tags:
+            self.skipTest('Test is marked to skip')
+        self.test.build()
+
+    #    # we want to run all the `before` elements here.
+    #    # but an fixtures that exist between the last before
+    #    # and the test should be run in `runTest`
+    #    for element in self.test.stack:
+    #        if element.is_before():
+    #            self.responses[element.key] = element.execute(self.responses)
+    #        elif element.is_after():
+    #            self.after.append(element)
+    #        else:
+    #            self.actual.append(element)
+
+    #def tearDown(self):
+    #    for element in self.after:
+    #        self.responses[element.key] = element.execute(self.responses)
+
+    def runTest(self):
+        self.test.run()
+
 
 class NosePlugin(Plugin):
     """
@@ -57,7 +93,16 @@ class NosePlugin(Plugin):
 
     def loadTestsFromName(self, filename, module):
         if filename not in self.files:
-            return None
+            return
         log.debug("Loading WithSpec tests from %s", filename)
-        return []
+
+        collector = WithSpecCollector()
+        collector.collect(filename)
+        for test in collector.tests:
+            yield WithSpecWrapper(test)
+
+    def testName(self, test):
+        if isinstance(test.test, WithSpecWrapper):
+            return '%s (%s)' % (test.test.test.name,
+                                test.test.test.context.name)
 
