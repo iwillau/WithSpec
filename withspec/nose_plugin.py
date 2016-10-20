@@ -22,21 +22,6 @@ class WithSpecWrapper(unittest.TestCase):
             self.skipTest('Test is marked to skip')
         self.test.build()
 
-    #    # we want to run all the `before` elements here.
-    #    # but an fixtures that exist between the last before
-    #    # and the test should be run in `runTest`
-    #    for element in self.test.stack:
-    #        if element.is_before():
-    #            self.responses[element.key] = element.execute(self.responses)
-    #        elif element.is_after():
-    #            self.after.append(element)
-    #        else:
-    #            self.actual.append(element)
-
-    #def tearDown(self):
-    #    for element in self.after:
-    #        self.responses[element.key] = element.execute(self.responses)
-
     def runTest(self):
         self.test.run()
 
