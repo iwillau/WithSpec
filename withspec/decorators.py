@@ -1,4 +1,4 @@
-from context import Description, Context
+from .context import Description, Context
 from .registry import get_registry
 
 

@@ -12,7 +12,7 @@ class Assertions(unittest.TestCase):
 
     def runTest(self):
         # Unittest requires this method to exist
-        raise TypeError, 'Assertions is not a Test'
+        raise TypeError('Assertions is not a Test')
 
     def assertContains(self, container, member, msg=None):
         return self.assertIn(member, container, msg)

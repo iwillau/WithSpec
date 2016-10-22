@@ -2,9 +2,9 @@ import sys
 import time
 import logging
 import textwrap
-import ConfigParser
+import configparser
 import random
-from StringIO import StringIO
+from io import StringIO
 from argparse import ArgumentParser
 from .collector import WithSpecCollector
 from .hooks import StdOutHook, LogHook, TraceBackHook
@@ -143,7 +143,7 @@ def run(argv=sys.argv[1:]):
     aliases = {'color': 'colour'}
     config = {}
 
-    file_parser = ConfigParser.SafeConfigParser()
+    file_parser = configparser.SafeConfigParser()
     file_parser.read(config_files)
     if file_parser.has_section('withspec'):
         # Tidy up values and keys

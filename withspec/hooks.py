@@ -2,7 +2,7 @@ import sys
 import os
 import logging
 from traceback import extract_tb
-from cStringIO import StringIO
+from io import StringIO
 
 log = logging.getLogger(__name__)
 

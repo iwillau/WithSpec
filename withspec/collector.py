@@ -47,7 +47,7 @@ class WithSpecCollector(object):
             filename, line_no = location.rsplit(':', 1)
             if os.path.isfile(filename):
                 return self.collect_from_file(filename, int(line_no))
-        raise ValueError, 'No such file or directory: {}'.format(location)
+        raise ValueError('No such file or directory: {}'.format(location))
 
     def collect_from_dir(self, dirname):
         log.debug('Walking over {}'.format(dirname))

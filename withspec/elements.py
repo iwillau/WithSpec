@@ -19,9 +19,9 @@ class ContextElement(object):
     '''
     def __init__(self, *args, **kwargs):
         if len(args) > 1:
-            raise TypeError, '%s() cannot take more than one positional ' \
+            raise TypeError('%s() cannot take more than one positional ' \
                              'argument. (%d given)' % \
-                             (self.__class__.__name__, len(args))
+                             (self.__class__.__name__, len(args)))
 
         if len(args) == 1:
             inherit = args[0]
@@ -43,8 +43,8 @@ class ContextElement(object):
         self.became = None
 
         if len(kwargs) > 0:
-            raise TypeError, "%s() got an unexpected keyword argument '%s'" % \
-                             (self.__class__.__name__, kwargs.keys()[0])
+            raise TypeError("%s() got an unexpected keyword argument '%s'" % \
+                             (self.__class__.__name__, kwargs.keys()[0]))
 
     def fullname(self, spacer=' '):
         parents = spacer.join([i.name for i in self.parents()])

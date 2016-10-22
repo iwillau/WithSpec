@@ -1,4 +1,8 @@
-env
+# PyVenv
+bin
+lib
+include
+
 *.pyc
 *.pyo
 *.swp

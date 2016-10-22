@@ -1,7 +1,0 @@
-
-Allow pluggable Assertor (so can use py.test for example)
-Nose plugin for code coverage
-possible own coverage plugin
-
-check that 'subject' is overridden properly
-
