@@ -1,0 +1,5 @@
+[run]
+source = withspec
+omit = withspec/test*
+[report]
+show_missing = true
