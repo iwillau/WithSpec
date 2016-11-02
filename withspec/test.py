@@ -73,7 +73,7 @@ class Test(object):
     def __getattr__(self, name):
         if name.startswith('assert'):
             return getattr(self.assertor, name)
-        raise AttributeError, "'Test' object has no attribute '%s'" % name
+        raise AttributeError("'Test' object has no attribute '%s'" % name)
 
     def subject(self, subject):
         return AssertionSubject(self.assertor, subject)
