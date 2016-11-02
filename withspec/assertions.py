@@ -61,22 +61,7 @@ class AssertionSubject(object):
         #   equal -> assert_equal
         #   equal -> assertEqual
 
-        def combinations(name, prefix='assert'):
-            yield name
-            if name[0] == '_':
-                yield prefix + name
-            if '_' in name:
-                yield '%s_%s' % (prefix, name)
-                yield prefix + name.title().replace('_', '')
-                yield prefix + ''.join([i.capitalize() for i in name.split('_')])
-
-            if name[0].islower():
-                yield prefix + name[0].upper() + name[1:]
-
-            yield prefix + name
-            yield name  # Yield name again last for a nice error message
-        
-        for name in combinations(name):
+        for name in self.assert_names(name):
             log.debug("Trying assertion method '%s'" % name)
             if hasattr(self.wrapped, name):
                 break
@@ -86,6 +71,24 @@ class AssertionSubject(object):
             return assert_func(self.subject, *args, **kwargs)
         return wrap_assertion
 
+    def assert_names(self, name, prefix='assert'):
+        yield name
+
+        if name[0] == '_':
+            yield prefix + name
+            yield '_' + prefix + name
+        elif '_' in name:
+            yield '%s_%s' % (prefix, name)
+            yield prefix + name.title().replace('_', '')
+            yield prefix + ''.join([i.capitalize() for i in name.split('_')])
+        elif name[0].islower():
+            yield '%s_%s' % (prefix, name)
+            yield prefix + name[0].upper() + name[1:]
+        else:
+            yield prefix + name
+
+        yield name  # Yield name again last for a nice error message
+        
     def __enter__(self):
         return self
 
