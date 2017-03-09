@@ -1,128 +1,108 @@
-from withspec import describe, context
+from withspec import describe, context, shared
 from coffee import (
     CoffeeMachine, 
+    CoffeeMachineException,
     Espresso,
     Cappuccino,
     CafeLatte,
+    FlatWhite,
+    CoffeeCup,
     )
 
 
-with describe(CoffeeMachine) as test:
+with shared('coffee maker'):
+    def make_a_latte(subject):
+        subject.make_coffee(CafeLatte)
 
-    def pressing_on_turns_on(subject, result):
-        subject.press_on()
-        print(subject)
-        print(result)
-        print(test)
-        result.wtf()
+    def make_a_cappucino(subject):
+        subject.make_coffee(Cappuccino)
+
+    def make_a_flatwhite(subject):
+        subject.make_coffee(FlatWhite)
 
 
-    with context('one espresso cup'):
-        def before(subject, cups):
-            subject.turn_on()
-            subject.place_cups(cups)
+with shared('coffee burner'):
+    def make_a_latte(subject):
+        subject.make_coffee(CafeLatte)
 
-        def after(subject):
-            subject.turn_off()
-        def cups():
-            return [EspressoCup()]
+    def make_a_cappucino(subject):
+        subject.make_coffee(Cappuccino)
 
-        def filled_cup(result):
-            return result
+    def make_a_flatwhite(subject):
+        subject.make_coffee(FlatWhite)
 
-        with context('when pressing espresso'):
-            def before(subject):
-                subject.press('Espresso')
 
-            def it_has_one_cup(result):
-                result.is_instance(EspressoCup)
+with describe(CoffeeMachine) as expect:
 
-            def it_has_no_milk(result):
-                result.not_contains('milk')
+    with context('has no cup'):
+        def placing_cup(subject):
+            subject.place_cup(CoffeeCup())
+            expect(subject.cup).is_instance(CoffeeCup)
 
-            def it_is_the_right_temperature(test, subject):
+        def removing_cup_should_fail(subject):
+            expect(subject.take_cup).raises(CoffeeMachineException)
+
+    with context('has a cup'):
+        def before(subject):
+            subject.place_cup(CoffeeCup())
+
+        def placing_cup_should_fail(subject):
+            with expect.raises(CoffeeMachineException):
+                subject.place_cup(CoffeeCup())
+
+        def removing_cup(subject):
+            cup = subject.take_cup()
+            expect(cup).is_instance(CoffeeCup)
+            expect(subject.cup).is_none()
+ 
+    with context('when powered off'):
+        def pressing_on_turns_on(subject):
+            subject.press_on()
+            expect(subject.on).is_true()
+
+        def pressing_off_does_nothing(subject):
+            subject.press_off()
+            expect(subject.on).is_false()
+
+        def making_coffee_does_nothing(subject):
+            subject.make_coffee(CafeLatte)
+
+    with context('when powered on'):
+        def before(subject):
+            subject.press_on()
+
+        def pressing_on_does_nothing(subject):
+            expect(subject.on).to.be_true()
+            subject.press_on()
+            expect(subject.on).is_true()
+
+        def pressing_off_turns_off(subject):
+            subject.press_off()
+            expect(subject.on).is_false()
+
+        with context('has no cup'):
+            def making_coffee_raises_exception(subject):
+                with expect.raises(CoffeeMachineException, 
+                                 regex='Coffee Machine does not have a cup'):
+                    subject.make_coffee(CafeLatte)
+
+        with context('has a coffee cup'):
+            def cup():
+                return CoffeeCup()
+
+            def before(subject, cup):
+                subject.place_cup(CoffeeCup())
+
+            def after(subject):
                 cup = subject.take_cup()
-                test.assertLess(cup.temperature, 96)
-                test.assertGreater(cup.temperature, 92)
+                expect(cup.amount).is_greater(0)
 
-            def the_cup_is_full(test, filled_cup):
-                '''it didn't spill'''
-                test.assertTrue(filled_cup.full)
+            def will_it_fake(subject):
+                subject.turn_off()
 
-            def it_tastes_good():
-                # Not sure how to test this yet
+            def does_it_taste_good():
+                # Not sure how we can test this in software ;-)
                 pass
 
-        with context('when pressing cappuccino'):
-            def before(subject):
-                subject.press('Cappuccino')
-
-            def it_has_one_cup(result):
-                result.is_instance(EspressoCup)
-
-            def it_has_milk(result):
-                result.contains('milk')
-
-            def the_cup_is_full(test, filled_cup):
-                '''it did spill'''
-                test.assertTrue(filled_cup.full)
-                
-            def the_cup_has_spilt(test, filled_cup):
-                test.assertTrue(filled_cup.spilt)
-
-            def it_tastes_good():
-                # Not sure how to test this yet
-                pass
-            
-    with context('one cappuccino cup'):
-        def cups():
-            return [CappuccinoCup()]
-
-        def filled_cup(result):
-            return result
-
-        with context('when pressing espresso'):
-            def before(subject):
-                subject.press('Espresso')
-
-            def it_has_one_cup(result):
-                result.is_instance(CappuccinoCup)
-
-            def it_has_no_milk(result):
-                result.not_contains('milk')
-
-            def it_is_the_right_temperature(test, subject):
-                cup = subject.take_cup()
-                test.assertLess(cup.temperature, 88)
-                test.assertGreater(cup.temperature, 82)
-
-            def the_cup_is_full(test, filled_cup):
-                '''it didn't spill'''
-                test.assertFalse(filled_cup.full)
-
-            def it_tastes_good():
-                # Not sure how to test this yet
-                pass
-
-        with context('when pressing cappuccino'):
-            def before(subject):
-                subject.press('Cappuccino')
-
-            def it_has_one_cup(result):
-                result.is_instance(CappuccinoCup)
-
-            def it_has_milk(result):
-                result.contains('milk')
-
-            def the_cup_is_full(test, filled_cup):
-                '''it did spill'''
-                test.assertTrue(filled_cup.full)
-                
-            def the_cup_has_not_spilt(test, filled_cup):
-                test.assertFalse(filled_cup.spilt)
-
-            def it_tastes_good():
-                # Not sure how to test this yet
-                pass
-
+            expect.it_behaves_like('coffee maker')
 

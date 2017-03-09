@@ -15,6 +15,7 @@ log = logging.getLogger(__name__)
 
 
 class Context(object):
+    shared = False
     def __init__(self, name, parent=None):
         self.parent = parent
         self.name = name
@@ -24,7 +25,7 @@ class Context(object):
         log.debug('Entering Context: %s', self.name)
         registry = get_registry()
         registry.add_context(self)
-        return self
+        return Assertions()
 
     def __exit__(self, ext, exv, tb):
         log.debug('<Exiting Context: %s', self.name)
@@ -32,16 +33,21 @@ class Context(object):
         registry.pop_context()
         self.finalise()
 
-    def __call__(self, description, **kwargs):
-        return None
-        return self.context(description, **kwargs)
-
     def context(self, description, **kwargs):
         registry = get_registry()
         parent = registry.current_context()
         return Context(description, 
                        parent=parent, 
                        **kwargs)
+
+    def is_shared(self):
+        # Any parent at all being shared makes _us_ shared
+        if self.shared is True:
+            return True
+        elif self.parent is not None:
+            return self.parent.is_shared()
+        else:
+            return False
 
     def add_element(self, key, element):
         if not isinstance(element, ContextElement):
@@ -161,5 +167,12 @@ class Description(Context):
                                             name='subject',
                                             actual=subject,
                                             context=self))
+
+
+class SharedExamples(Context):
+    '''A special Context that doesn't get executed but can be included
+    in other contexts
+    '''
+    shared = True
 
 

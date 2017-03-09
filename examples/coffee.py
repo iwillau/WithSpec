@@ -5,7 +5,11 @@ They are intended to cover as many use cases as possible
 '''
 
 
-class CupOverflowException(Exception):
+class CoffeeMachineException(Exception):
+    pass
+
+
+class CupOverflowException(CoffeeMachineException):
     def __init__(cup = None, size = None, *args):
         self.cup = cup
         self.size = size
@@ -24,30 +28,54 @@ class CoffeeMachine(object):
         self.on = False
 
     def place_cup(self, cup):
+        if self.cup is not None:
+            raise CoffeeMachineException('Coffee Machine already has a cup')
         self.cup = cup
 
     def take_cup(self):
+        if self.cup is None:
+            raise CoffeeMachineException('Coffee Machine does not have a cup')
         cup = self.cup
         self.cup = None
         return cup
 
     def make_coffee(self, coffee_type):
+        if self.on is False:
+            return None
+        if self.cup is None:
+            raise CoffeeMachineException('Coffee Machine does not have a cup')
+
+        # Firstly put in the coffee shots
+        for shot in range(coffee_type.shot_count):
+            self.cup.pour(coffee_type.shot_type.size)
+
         return None
 
 
-class CoffeeCup():
+class GenericCup():
+    def __init__(self):
+        self.amount = 0  # mL
+
+    def pour(self, amount):
+        self.amount += amount
+        if self.amount > self.size:
+            self.amount = self.size
+            raise CupOverflowException(self, self.amount)
+
+
+class CoffeeCup(GenericCup):
     size = 180  # mL
 
 
-class CoffeeMug():
+class CoffeeMug(GenericCup):
     size = 300  # mL
 
 
-class CoffeeGlass():
+class CoffeeGlass(GenericCup):
     size = 240  # mL
 
 
-class EspressoGlass():
+class EspressoGlass(GenericCup):
     size = 60  # mL
 
 

@@ -1,5 +1,6 @@
 import unittest
 import logging
+from .registry import get_registry
 
 log = logging.getLogger(__name__)
 
@@ -57,11 +58,20 @@ class Assertions(unittest.TestCase):
             # We being called by AssertionSubject 
             return self.assertRaises(*args, **kwargs)
 
+    def it_behaves_like(self, shared_name):
+        registry = get_registry()
+        context = registry.current_context()
+        def my_func():
+            print('MYYYFUNC')
+            pass
+        context.add_element('boooger', my_func)
+
 
 class AssertionSubject(object):
     def __init__(self, wrapped, subject):
         self.wrapped = wrapped
         self.subject = subject
+        self.to = ExpectationSyntaxWrapper(wrapped, subject)
 
     def __getattr__(self, name):
         # Attempt ao locate the assertion name
@@ -142,3 +152,10 @@ class AssertionSubject(object):
         return self.wrapped.assertNotEqual(self.subject, value)
 
 
+class ExpectationSyntaxWrapper():
+    def __init__(self, wrapped, subject):
+        self.wrapped = wrapped
+        self.subject = subject
+
+    def be_true(self):
+        return self.wrapped.assertTrue(self.subject)

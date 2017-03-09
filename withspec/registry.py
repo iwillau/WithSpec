@@ -3,6 +3,7 @@
 class RegistryManager(object):
     def __init__(self):
         self._contexts = []
+        self.shared = {}
 
     def add_context(self, context):
         self._contexts.append(context)
@@ -21,3 +22,5 @@ _registry = RegistryManager()
 
 def get_registry():
     return _registry
+
+

@@ -114,9 +114,6 @@ class WithSpecCollector(object):
                 elements.append(element)
         self.resolve_and_build(elements)
 
-
-
-
     def resolve_and_build(self, elements):
         for element in elements:
             element.resolve_fixtures()

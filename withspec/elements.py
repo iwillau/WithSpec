@@ -137,6 +137,11 @@ class TestElement(ContextElement):
             responses[element.key] = element.execute(responses)
 
     def build(self):
+        # If this test has a 'shared' in its parent chain, then it 
+        # doesn't get built. It needs to be 'cloned' into another
+        # heirarchy somewhere to be used.
+        if self.context.is_shared():
+            return None
         log.info('Building %s', self.fullname('->'))
         # Get ourselves ready to run
         if len(self.args) == 0:
