@@ -36,7 +36,7 @@ class AssertionSubject(object):
         self.subject = subject
 
     def __getattr__(self, name):
-        # Attempt to locate the assertion name
+        # Attempt ao locate the assertion name
         # Try in order:
         #   1. name as given
         #   2. 'assert' + name
@@ -66,12 +66,40 @@ class AssertionSubject(object):
 
         for name in self.assert_names(name):
             log.debug("Trying assertion method '%s'" % name)
-            if hasattr(self.wrapped, name):
+            # Reference: https://hynek.me/articles/hasattr/
+            # 'hasattr' executes anyway and is no quicker than getattr
+            assert_func = getattr(self.wrapped, name, None)
+            if assert_func is not None:
                 break
 
         def wrap_assertion(*args, **kwargs):
-            assert_func = getattr(self.wrapped, name)
-            return assert_func(self.subject, *args, **kwargs)
+            # Try different variations of calling the assert function
+            # This is potentially dangerous and possibly needs re-implementing
+            # to be explicit (we may be _too_ magical here)
+            #
+            # 1. An Assert style function may legimately return TypeError
+            # 2. We're hiding the actual function signature error, makes it
+            #    difficult to debug the assert
+            #
+            # TODO: Perhaps a decorator preventing this behaviour?
+            try:
+                return assert_func(self.subject, *args, **kwargs)
+            except TypeError as original_error:
+                if len(args) == 0:
+                    raise
+                else:
+                    try:
+                        return assert_func(args[0], self.subject, 
+                                           *args[1:], **kwargs)
+                    except TypeError:
+                        if len(args) == 1:
+                            raise original_error
+                        else:
+                            try:
+                                return assert_func(args[0], args[1], self.subject, 
+                                                   *args[2:], **kwargs)
+                            except TypeError:
+                                raise original_error
         return wrap_assertion
 
     def assert_names(self, name, prefix='assert'):
@@ -111,4 +139,5 @@ class AssertionSubject(object):
     def __ne__(self, value):
         return self.wrapped.assertNotEqual(self.subject, value)
 
-
+    #def raises(self, exception, *args, **kwargs):
+    #    return self.wrapped.assertRaises(exception, self.subject, *args, **kwargs)
