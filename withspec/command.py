@@ -57,13 +57,23 @@ def process_argv(argv, config):
         help="Synonym for --format",
         dest='format',
         )
-    parser.add_argument(
-        '-o', '--order',
+    order = parser.add_mutually_exclusive_group()
+    order.add_argument(
+        '--order',
+        dest='order',
         action='store',
         choices=['defined', 'random'],
         default=config.pop('order', 'random'),
         help='Run the tests in random order, or the order in which they ' \
              'were defined.',
+    )
+    order.add_argument(
+        '-o',
+        dest='order',
+        action='store',
+        choices={'d': 'defined', 'r': 'random'},
+        default='r',
+        help='Synonym for --order',
     )
     parser.add_argument(
         '--seed',
