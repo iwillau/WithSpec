@@ -104,5 +104,6 @@ with describe(CoffeeMachine) as expect:
                 # Not sure how we can test this in software ;-)
                 pass
 
-            expect.it_behaves_like('coffee maker')
+            it_behaves_like('coffee maker')
+
 

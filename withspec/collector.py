@@ -115,12 +115,19 @@ class WithSpecCollector(object):
         self.resolve_and_build(elements)
 
     def resolve_and_build(self, elements):
+        # Resolve Shared ... somehow and add them to a 'shared' list
+        # if the 'element' is a shared stub then check the 'shared' list
+        # for its test and pop them on, creating contexts as needed
+        # has to be done prior to fixture resolution
+        # as the shared may use fixtures from its intended heirarchy
         for element in elements:
             element.resolve_fixtures()
+
 
         for element in elements:
             test = element.build()
             if test is not None:
                 self.tests.append(test)
 
+        
 
