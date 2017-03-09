@@ -29,6 +29,34 @@ class Assertions(unittest.TestCase):
     def __call__(self, subject):
         return AssertionSubject(self, subject)
 
+    def assertRaises(self, callable, exception, *args, **kwargs):
+        return unittest.TestCase.assertRaises(self, exception, callable, 
+                                             *args, **kwargs)
+
+    def assertRaises(self, callable, exception, *args, **kwargs):
+        regex = kwargs.pop('regex', None)
+        if regex is None:
+            return unittest.TestCase.assertRaises(self, exception, 
+                                                  callable, *args, **kwargs)
+        else:
+            return unittest.TestCase.assertRaisesRegex(self, exception, 
+                                                       callable, regex,
+                                                       *args, **kwargs)
+
+    # Used as a context manager
+    def raises(self, *args, **kwargs):
+        if len(args) == 1:
+            regex = kwargs.pop('regex', None)
+            #We're being called directly, expecting a context
+            if regex is None:
+                return unittest.TestCase.assertRaises(self, *args, **kwargs)
+            else:
+                return unittest.TestCase.assertRaisesRegex(self, args[0],
+                                                           regex, **kwargs)
+        else:
+            # We being called by AssertionSubject 
+            return self.assertRaises(*args, **kwargs)
+
 
 class AssertionSubject(object):
     def __init__(self, wrapped, subject):
@@ -73,33 +101,7 @@ class AssertionSubject(object):
                 break
 
         def wrap_assertion(*args, **kwargs):
-            # Try different variations of calling the assert function
-            # This is potentially dangerous and possibly needs re-implementing
-            # to be explicit (we may be _too_ magical here)
-            #
-            # 1. An Assert style function may legimately return TypeError
-            # 2. We're hiding the actual function signature error, makes it
-            #    difficult to debug the assert
-            #
-            # TODO: Perhaps a decorator preventing this behaviour?
-            try:
-                return assert_func(self.subject, *args, **kwargs)
-            except TypeError as original_error:
-                if len(args) == 0:
-                    raise
-                else:
-                    try:
-                        return assert_func(args[0], self.subject, 
-                                           *args[1:], **kwargs)
-                    except TypeError:
-                        if len(args) == 1:
-                            raise original_error
-                        else:
-                            try:
-                                return assert_func(args[0], args[1], self.subject, 
-                                                   *args[2:], **kwargs)
-                            except TypeError:
-                                raise original_error
+            return assert_func(self.subject, *args, **kwargs)
         return wrap_assertion
 
     def assert_names(self, name, prefix='assert'):
@@ -139,5 +141,4 @@ class AssertionSubject(object):
     def __ne__(self, value):
         return self.wrapped.assertNotEqual(self.subject, value)
 
-    #def raises(self, exception, *args, **kwargs):
-    #    return self.wrapped.assertRaises(exception, self.subject, *args, **kwargs)
+
