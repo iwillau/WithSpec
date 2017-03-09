@@ -46,10 +46,13 @@ class AssertionSubject(object):
         #   Conversions
         #   is_something -> is_something
         #   is_something -> assert_is_something
+        #   is_something -> assert_something
         #   is_something -> assertIsSomething
+        #   is_something -> assertSomething
         #
         #   isSomething -> isSomething
         #   isSomething -> assertIsSomething
+        #   isSomething -> assertSomething
         #
         #   In -> In
         #   In -> assertIn
@@ -79,13 +82,20 @@ class AssertionSubject(object):
             yield '_' + prefix + name
         elif '_' in name:
             yield '%s_%s' % (prefix, name)
-            yield prefix + name.title().replace('_', '')
-            yield prefix + ''.join([i.capitalize() for i in name.split('_')])
-        elif name[0].islower():
-            yield '%s_%s' % (prefix, name)
+            # Strip the 'is' from the start
+            first, *rest = [i for i in name.split('_')]
+            if first == 'is':
+                yield prefix + '_' + ''.join(rest)
+                yield prefix + 'Is' + ''.join([i.title() for i in rest])
+                yield prefix + ''.join([i.title() for i in rest])
+            else:
+                yield prefix + first.title() + ''.join([i.title() for i in rest])
+        elif name[0:2] == 'is':
             yield prefix + name[0].upper() + name[1:]
+            yield prefix + name[2:]
         else:
-            yield prefix + name
+            yield prefix + '_' + name
+            yield prefix + name[0].upper() + name[1:]
 
         yield name  # Yield name again last for a nice error message
         
