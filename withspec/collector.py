@@ -122,6 +122,10 @@ class WithSpecCollector(object):
         # as the shared may use fixtures from its intended heirarchy
         for element in elements:
             element.resolve_fixtures()
+        
+        
+        for element in elements:
+            element.resolve_fixtures()
 
 
         for element in elements:
