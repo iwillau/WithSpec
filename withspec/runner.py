@@ -68,6 +68,12 @@ class WithSpecRunner(object):
                 self.skipped.append(test)
                 printer.warn(test)
                 continue
+            # If fail fast and we've failed a test, just skip it
+            if self.fail_fast and len(self.failed) > 0:
+                self.skipped.append(test)
+                printer.warn(test)
+                continue
+
             # Actually do a test!
             with TestManager(test, self.hooks) as manager:
                 test.run()
@@ -77,8 +83,6 @@ class WithSpecRunner(object):
             else:
                 self.failed.append((test, manager.output))
                 printer.error(test, manager.error)
-                if self.fail_fast:
-                    break
         
         printer.new_line()
         if len(self.failed) > 0:
