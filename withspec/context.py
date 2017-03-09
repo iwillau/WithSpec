@@ -33,6 +33,7 @@ class Context(object):
         self.finalise()
 
     def __call__(self, description, **kwargs):
+        return None
         return self.context(description, **kwargs)
 
     def context(self, description, **kwargs):
@@ -160,4 +161,5 @@ class Description(Context):
                                             name='subject',
                                             actual=subject,
                                             context=self))
+
 

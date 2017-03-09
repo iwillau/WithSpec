@@ -1,55 +1,99 @@
+'''
+This module contains objects that are used in the examples provided.
+
+They are intended to cover as many use cases as possible
+'''
+
+
+class CupOverflowException(Exception):
+    def __init__(cup = None, size = None, *args):
+        self.cup = cup
+        self.size = size
+        super().__init__('Cup overflow of MEP', *args)
+
 
 class CoffeeMachine(object):
-    SERVES = {
-        'Cappuccino': 3,
-        'Latte': 2,
-        'Espresso': 1,
-    }
     def __init__(self):
-        self.cups = []
-        self.pressed = None
+        self.on = False
+        self.cup = None
 
-    def turn_on(self):
-        pass
+    def press_on(self):
+        self.on = True
 
-    def turn_off(self):
-        pass
+    def press_off(self):
+        self.on = False
 
-    def place_cups(self, cups):
-        self.cups += cups
+    def place_cup(self, cup):
+        self.cup = cup
 
     def take_cup(self):
-        return self.cups.pop()
+        cup = self.cup
+        self.cup = None
+        return cup
 
-    def press(self, label):
-        self.pressed = label
-        serve = self.SERVES[label]
-        for cup in self.cups:
-            if serve > 1:
-                cup['milk'] = True
-            if serve < cup.size:
-                cup.full = False
-                cup.spilt = False
-            elif serve == cup.size:
-                cup.full = True
-                cup.spilt = False
-            elif serve > cup.size:
-                cup.full = True
-                cup.spilt = True
+    def make_coffee(self, coffee_type):
+        return None
 
 
-class EspressoCup(dict):
-    size = 1
-    temperature = 94
-    full = True
+class CoffeeCup():
+    size = 180  # mL
 
 
-class CappuccinoCup(dict):
-    temperature = 86
-    size = 3
+class CoffeeMug():
+    size = 300  # mL
 
 
-class LatteGlass(dict):
-    size = 2
+class CoffeeGlass():
+    size = 240  # mL
+
+
+class EspressoGlass():
+    size = 60  # mL
+
+
+class CoffeeShot():
+    pass
+
+
+class Ristretto(CoffeeShot):
+    size = 15  # mL
+
+
+class Espresso(CoffeeShot):
+    size = 30  # mL
+
+
+class Lungo(CoffeeShot):
+    size = 60  # mL
+
+
+class Cappuccino():
+    '''A Cappuccino is defined as having a double espresso,
+    hot milk and steamed milk foam.
+
+    It should be 180mL
+    '''
+    shot_type = Espresso
+    shot_count = 2
+
+
+class CafeLatte():
+    '''A Latte is defined as having a single espresso,
+    hot milk and steamed milk foam (12mm).
+
+    It should be 240mL
+    '''
+    shot_type = Espresso
+    shot_count = 1
+
+
+class FlatWhite():
+    '''A Flat White is defined as having a double ristretto
+    hot milk and steamed milk foam (12mm).
+
+    It should be 180mL
+    '''
+    shot_type = Ristretto
+    shot_count = 2
 
 

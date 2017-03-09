@@ -1,24 +1,29 @@
 from withspec import describe, context
 from coffee import (
     CoffeeMachine, 
-    EspressoCup,
-    CappuccinoCup,
-    LatteGlass,
+    Espresso,
+    Cappuccino,
+    CafeLatte,
     )
 
 
-with describe(CoffeeMachine):
-    def before(subject, cups):
-        subject.turn_on()
-        subject.place_cups(cups)
+with describe(CoffeeMachine) as test:
 
-    def after(subject):
-        subject.turn_off()
+    def pressing_on_turns_on(subject, result):
+        subject.press_on()
+        print(subject)
+        print(result)
+        print(test)
+        result.wtf()
 
-    def result(subject):
-        return subject.take_cup()
 
     with context('one espresso cup'):
+        def before(subject, cups):
+            subject.turn_on()
+            subject.place_cups(cups)
+
+        def after(subject):
+            subject.turn_off()
         def cups():
             return [EspressoCup()]
 
