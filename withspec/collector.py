@@ -158,6 +158,7 @@ class WithSpecCollector(object):
                     log.debug('Adding behaviour `%s` to context `%s`', 
                               shared_name, context.name)
                     for shared_element in shared[shared_name]:
+
                         elements.append(TestElement(shared_element))
 
 
