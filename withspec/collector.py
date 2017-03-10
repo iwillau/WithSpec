@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import inspect
+from collections import deque
 from .registry import get_registry
 from .elements import TestElement, UnknownElement
 
@@ -115,18 +116,71 @@ class WithSpecCollector(object):
         self.resolve_and_build(elements)
 
     def resolve_and_build(self, elements):
-        # Resolve Shared ... somehow and add them to a 'shared' list
-        # if the 'element' is a shared stub then check the 'shared' list
-        # for its test and pop them on, creating contexts as needed
-        # has to be done prior to fixture resolution
-        # as the shared may use fixtures from its intended heirarchy
+        # Resolve Shared and split the elements into shared and unshared
+        shared = {}
+        unshared = deque()
         for element in elements:
-            element.resolve_fixtures()
+            shared_name = element.shared()
+            if shared_name is not None:
+                if shared_name not in shared:
+                    shared[shared_name] = []
+                shared[shared_name].append(element)
+            else:
+                unshared.append(element)
         
-        
-        for element in elements:
-            element.resolve_fixtures()
+        # Get all the 'entered' contexts from the registry
+        # As we loop through all the tests we check if context to see
+        # if it has any behaviours we need to add
+        all_contexts = get_registry()._all_contexts
 
+        elements = []
+        element = unshared.popleft()
+        for context in all_contexts:
+            while element is not None and element.context == context:
+                elements.append(element)
+                if len(unshared) > 0:
+                    element = unshared.popleft()
+                else:
+                    element = None
+            for shared_name in context.pop_behaviours():
+                if shared_name not in shared:
+                    log.debug('Requested unknown shared group `%s` for'
+                              ' context `%s`', 
+                              shared_name, context.name)
+                    # Add a 'mock' Test with the tag set to pending
+                    # so that the user knows that shared group is here
+                    elements.append(TestElement(key=shared_name,
+                                                name=shared_name,
+                                                actual=None,
+                                                context=context,
+                                                tags=['pending']))
+                else:
+                    log.debug('Adding behaviour `%s` to context `%s`', 
+                              shared_name, context.name)
+                    for shared_element in shared[shared_name]:
+                        elements.append(TestElement(shared_element))
+
+
+        #for element in unshared:
+        #    if element.context !=  context:
+        #        if context is not None:
+        #            # Process context behaviours
+        #            for shared_name in context.pop_behaviours():
+        #                print('shared {} for context {}'.format(shared_name,
+        #                                                        context.name))
+        #        context = element.context
+            #shared_name = 'coffee makers'
+            #if shared_name not in shared:
+            #    # Add a skipped element to indicate that this shared type
+            #    # doesn't exist
+            #    log.debug('Requested unknown shared group `%s`', shared_name)
+            #else:
+            #    for shared_element in shared[shared_name]:
+            #        pass
+        #    elements.append(element)
+
+        for element in elements:
+            element.resolve_fixtures()
 
         for element in elements:
             test = element.build()
@@ -134,4 +188,3 @@ class WithSpecCollector(object):
                 self.tests.append(test)
 
         
-

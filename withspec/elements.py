@@ -38,7 +38,10 @@ class ContextElement(object):
             self.name = kwargs.pop('name')
             self.actual = kwargs.pop('actual')
             self.context = kwargs.pop('context')
-            self.args = arg_names(self.actual)
+            if self.actual is not None:
+                self.args = arg_names(self.actual)
+            else:
+                self.args = []
 
         self.became = None
 
@@ -77,6 +80,9 @@ class ContextElement(object):
     def filename(self):
         return inspect.getsourcefile(self.actual)
 
+    def shared(self):
+        return self.context.shared()
+
 
 class BeforeElement(ContextElement):
     def execute(self, arguments):
@@ -104,8 +110,10 @@ class FixtureElement(ContextElement):
 
 class TestElement(ContextElement):
     def __init__(self, *args, **kwargs):
-        super(TestElement, self).__init__(*args, **kwargs)
         self.tags = set()
+        for tag in kwargs.pop('tags', []):
+            self.tags.add(tag)
+        super(TestElement, self).__init__(*args, **kwargs)
 
     def execute(self, arguments):
         # Run just the single executable.
@@ -137,11 +145,6 @@ class TestElement(ContextElement):
             responses[element.key] = element.execute(responses)
 
     def build(self):
-        # If this test has a 'shared' in its parent chain, then it 
-        # doesn't get built. It needs to be 'cloned' into another
-        # heirarchy somewhere to be used.
-        if self.context.is_shared():
-            return None
         log.info('Building %s', self.fullname('->'))
         # Get ourselves ready to run
         if len(self.args) == 0:
@@ -154,10 +157,9 @@ class TestElement(ContextElement):
         for arg in self.args:
             for fixture in resolver(arg):
                 stack.append(fixture)
+
         stack.append(self)
-
         stack += self.context.after_stack(resolver)
-
         self.stack = stack
         return self
 
@@ -167,4 +169,5 @@ class UnknownElement(ContextElement):
         if self.became is not None:
             return self.became.build()
         return TestElement(self).build()
+
 

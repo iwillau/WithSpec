@@ -26,3 +26,7 @@ def shared(description, **kwargs):
                           **kwargs)
 
 
+def it_behaves_like(name, **kwargs):
+    registry = get_registry()
+    context = registry.current_context()
+    context.behaves_like(name, **kwargs)

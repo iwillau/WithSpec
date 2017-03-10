@@ -2,18 +2,20 @@
 
 class RegistryManager(object):
     def __init__(self):
-        self._contexts = []
+        self._context_stack = []
+        self._all_contexts = []
 
     def add_context(self, context):
-        self._contexts.append(context)
+        self._context_stack.append(context)
+        self._all_contexts.append(context)
 
     def pop_context(self):
-        return self._contexts.pop()
+        return self._context_stack.pop()
 
     def current_context(self):
-        if len(self._contexts) == 0:
+        if len(self._context_stack) == 0:
             return None
-        return self._contexts[-1]
+        return self._context_stack[-1]
 
 
 _registry = RegistryManager()

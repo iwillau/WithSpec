@@ -15,11 +15,12 @@ log = logging.getLogger(__name__)
 
 
 class Context(object):
-    shared = False
+    is_shared = False
     def __init__(self, name, parent=None):
         self.parent = parent
         self.name = name
         self.elements = []
+        self.behaves_like_names = []
 
     def __enter__(self):
         log.debug('Entering Context: %s', self.name)
@@ -28,7 +29,7 @@ class Context(object):
         return Assertions()
 
     def __exit__(self, ext, exv, tb):
-        log.debug('<Exiting Context: %s', self.name)
+        log.debug('Exiting Context: %s', self.name)
         registry = get_registry()
         registry.pop_context()
         self.finalise()
@@ -40,14 +41,22 @@ class Context(object):
                        parent=parent, 
                        **kwargs)
 
-    def is_shared(self):
+    def shared(self):
         # Any parent at all being shared makes _us_ shared
-        if self.shared is True:
-            return True
+        if self.is_shared is True:
+            return self.name
         elif self.parent is not None:
-            return self.parent.is_shared()
+            return self.parent.shared()
         else:
-            return False
+            return None
+
+    def behaves_like(self, name):
+        # Add a shared 'group' to this context for processing later
+        self.behaves_like_names.append(name)
+
+    def pop_behaviours(self):
+        while self.behaves_like_names:
+            yield self.behaves_like_names.pop()
 
     def add_element(self, key, element):
         if not isinstance(element, ContextElement):
@@ -173,6 +182,10 @@ class SharedExamples(Context):
     '''A special Context that doesn't get executed but can be included
     in other contexts
     '''
-    shared = True
+    is_shared = True
+
+    def create_context(self, parent):
+        context = Context(self.name, parent)
+        context.elements = self.elements
 
 

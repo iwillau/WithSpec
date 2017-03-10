@@ -1,4 +1,4 @@
-from withspec import describe, context, shared
+from withspec import describe, context, shared, it_behaves_like
 from coffee import (
     CoffeeMachine, 
     CoffeeMachineException,
@@ -22,6 +22,10 @@ with shared('coffee maker'):
 
 
 with shared('coffee burner'):
+    with context('super hot'):
+        def did_it_burn_me(subject):
+            pass
+
     def make_a_latte(subject):
         subject.make_coffee(CafeLatte)
 
@@ -80,6 +84,9 @@ with describe(CoffeeMachine) as expect:
             subject.press_off()
             expect(subject.on).is_false()
 
+        with context('empty context'):
+            it_behaves_like('coffee maker')
+
         with context('has no cup'):
             def making_coffee_raises_exception(subject):
                 with expect.raises(CoffeeMachineException, 
@@ -97,13 +104,15 @@ with describe(CoffeeMachine) as expect:
                 cup = subject.take_cup()
                 expect(cup.amount).is_greater(0)
 
-            def will_it_fake(subject):
-                subject.turn_off()
-
             def does_it_taste_good():
                 # Not sure how we can test this in software ;-)
                 pass
 
             it_behaves_like('coffee maker')
+            it_behaves_like('mep burner')
+            it_behaves_like('coffee burner')
+
+            with context('empty context'):
+                it_behaves_like('coffee maker')
 
 
