@@ -2,10 +2,14 @@
 
 class RegistryManager(object):
     def __init__(self):
-        self._context_stack = []
-        self._all_contexts = []
+        self._context_stack = []  # The 'current' context
+        self._all_contexts = []   # All contexts in the order they appear
+        self.contexts = []        # The 'tree' of contexts, contains 'top'
+                                  # level contexts
 
     def add_context(self, context):
+        if len(self._context_stack) == 0:
+            self.contexts.append(context)
         self._context_stack.append(context)
         self._all_contexts.append(context)
 

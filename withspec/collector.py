@@ -67,7 +67,7 @@ class WithSpecCollector(object):
         dirname, filename = os.path.split(abspath)
         os.chdir(dirname)
         sys.path.insert(0, dirname)
-        
+
         try:
             with open(filename, 'r') as fh:
                  file_globals = WithSpecCatcher(
@@ -89,7 +89,8 @@ class WithSpecCollector(object):
         # called, which lets them decide if a function is a fixture 
         # or a test (if not labeled as such).
         if line is None:
-            self.resolve_and_build(file_globals.elements)
+            elements = self.resolve_contexts(get_registry().contexts)
+            self.resolve_and_build(elements)
             return
 
         # Locate a test on that line number
@@ -100,7 +101,9 @@ class WithSpecCollector(object):
                 return
 
         # Locate a the first test after the given line and then catch
-        # all the test in that context
+        # all the tests in that context
+        # TODO: Re-jig this to use the context stack instead
+        raise Exception('Not yet implemented')
         context = None
         for element in file_globals.elements:
             lines, lineno = inspect.getsourcelines(element.actual)
@@ -115,71 +118,41 @@ class WithSpecCollector(object):
                 elements.append(element)
         self.resolve_and_build(elements)
 
-    def resolve_and_build(self, elements):
-        # Resolve Shared and split the elements into shared and unshared
-        shared = {}
-        unshared = deque()
-        for element in elements:
-            shared_name = element.shared()
-            if shared_name is not None:
-                if shared_name not in shared:
-                    shared[shared_name] = []
-                shared[shared_name].append(element)
-            else:
-                unshared.append(element)
-        
-        # Get all the 'entered' contexts from the registry
-        # As we loop through all the tests we check if context to see
-        # if it has any behaviours we need to add
-        all_contexts = get_registry()._all_contexts
-
+    def resolve_contexts(self, contexts):
+        # We don't want to use a generator here
+        # as we need the stack to be fully iterated prior to resolving
+        # And the list of elements will need iterating multiple times
         elements = []
-        element = unshared.popleft()
-        for context in all_contexts:
-            while element is not None and element.context == context:
+        for context in contexts:
+            for element in context.elements['tests']:
                 elements.append(element)
-                if len(unshared) > 0:
-                    element = unshared.popleft()
-                else:
-                    element = None
-            for shared_name in context.pop_behaviours():
-                if shared_name not in shared:
-                    log.debug('Requested unknown shared group `%s` for'
-                              ' context `%s`', 
-                              shared_name, context.name)
-                    # Add a 'mock' Test with the tag set to pending
-                    # so that the user knows that shared group is here
-                    elements.append(TestElement(key=shared_name,
-                                                name=shared_name,
-                                                actual=None,
-                                                context=context,
-                                                tags=['pending']))
-                else:
-                    log.debug('Adding behaviour `%s` to context `%s`', 
-                              shared_name, context.name)
-                    for shared_element in shared[shared_name]:
+            # Add any behaviours
+            for behaviour_name in context.behaviour_names:
+                pass    
+            # Iterate child contexts
+            elements.extend(self.resolve_contexts(context.children))
+        return elements
 
-                        elements.append(TestElement(shared_element))
+        #    for shared_name in context.pop_behaviours():
+        #        if shared_name not in shared:
+        #            log.debug('Requested unknown shared group `%s` for'
+        #                      ' context `%s`', 
+        #                      shared_name, context.name)
+        #            # Add a 'mock' Test with the tag set to pending
+        #            # so that the user knows that shared group is here
+        #            elements.append(TestElement(key=shared_name,
+        #                                        name=shared_name,
+        #                                        actual=None,
+        #                                        context=context,
+        #                                        tags=['pending']))
+        #        else:
+        #            log.debug('Adding behaviour `%s` to context `%s`', 
+        #                      shared_name, context.name)
+        #            for shared_element in shared[shared_name]:
 
+        #                elements.append(TestElement(shared_element))
 
-        #for element in unshared:
-        #    if element.context !=  context:
-        #        if context is not None:
-        #            # Process context behaviours
-        #            for shared_name in context.pop_behaviours():
-        #                print('shared {} for context {}'.format(shared_name,
-        #                                                        context.name))
-        #        context = element.context
-            #shared_name = 'coffee makers'
-            #if shared_name not in shared:
-            #    # Add a skipped element to indicate that this shared type
-            #    # doesn't exist
-            #    log.debug('Requested unknown shared group `%s`', shared_name)
-            #else:
-            #    for shared_element in shared[shared_name]:
-            #        pass
-        #    elements.append(element)
-
+    def resolve_and_build(self, elements):
         for element in elements:
             element.resolve_fixtures()
 
@@ -188,4 +161,4 @@ class WithSpecCollector(object):
             if test is not None:
                 self.tests.append(test)
 
-        
+

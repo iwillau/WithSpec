@@ -18,9 +18,12 @@ class Context(object):
     is_shared = False
     def __init__(self, name, parent=None):
         self.parent = parent
+        self.children = []
         self.name = name
         self.elements = []
-        self.behaves_like_names = []
+        self.behaviour_names = []
+        if parent is not None:
+            parent.children.append(self)
 
     def __enter__(self):
         log.debug('Entering Context: %s', self.name)
@@ -34,13 +37,6 @@ class Context(object):
         registry.pop_context()
         self.finalise()
 
-    def context(self, description, **kwargs):
-        registry = get_registry()
-        parent = registry.current_context()
-        return Context(description, 
-                       parent=parent, 
-                       **kwargs)
-
     def shared(self):
         # Any parent at all being shared makes _us_ shared
         if self.is_shared is True:
@@ -52,11 +48,7 @@ class Context(object):
 
     def behaves_like(self, name):
         # Add a shared 'group' to this context for processing later
-        self.behaves_like_names.append(name)
-
-    def pop_behaviours(self):
-        while self.behaves_like_names:
-            yield self.behaves_like_names.pop()
+        self.behaviour_names.append(name)
 
     def add_element(self, key, element):
         if not isinstance(element, ContextElement):
@@ -64,6 +56,7 @@ class Context(object):
                 name = element.__doc__
             else:
                 name = key.replace('_', ' ')
+            # TODO: Identify the Element type here if we can
             element = UnknownElement(key=key, name=name, 
                                      actual=element, context=self)
         self.elements.append(element)
@@ -185,7 +178,7 @@ class SharedExamples(Context):
     is_shared = True
 
     def create_context(self, parent):
-        context = Context(self.name, parent)
+        context = Context('[{}]'.format(self.name), parent)
         context.elements = self.elements
 
 
