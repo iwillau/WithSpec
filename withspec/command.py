@@ -186,7 +186,7 @@ def run(argv=sys.argv[1:]):
     time_start = time.time()
     for location in config['locations']:
         collector.collect(location)
-    time_loading = time_start - time.time()
+    time_loading = time.time() - time_start
     log.info('Collected %s tests in %.4f seconds' % (len(collector.tests),
                                                      time_loading))
 
@@ -215,7 +215,7 @@ def run(argv=sys.argv[1:]):
 
     time_start = time.time()
     runner.run(collector.tests, printer)
-    time_testing = time_start - time.time()
+    time_testing = time.time() - time_start
 
 
     printer.new_line()
