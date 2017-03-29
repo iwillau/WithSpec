@@ -10,7 +10,14 @@ from coffee import (
     )
 
 
+with shared('takes cups'):
+    def takes_a_cup(subject):
+        pass
+
+
 with shared('coffee maker'):
+    it_behaves_like('takes cups')
+
     def make_a_latte(subject):
         subject.make_coffee(CafeLatte)
 

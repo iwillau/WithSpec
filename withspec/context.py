@@ -35,7 +35,6 @@ class Context(object):
         log.debug('Exiting Context: %s', self.name)
         registry = get_registry()
         registry.pop_context()
-        self.finalise()
 
     def shared(self):
         # Any parent at all being shared makes _us_ shared
@@ -179,6 +178,10 @@ class SharedExamples(Context):
 
     def create_context(self, parent):
         context = Context('[{}]'.format(self.name), parent)
-        context.elements = self.elements
+        context.behaviour_names = self.behaviour_names[:]
+        for element in self.elements:
+            new_element = UnknownElement(element)
+            new_element.context = context
+            context.elements.append(new_element)
 
 

@@ -84,12 +84,17 @@ class WithSpecCollector(object):
                 sys.path.remove(dirname)
             except ValueError:
                 pass
+        # Separate Contexts from behaviours
+        behaviours, contexts = self.resolve_contexts(get_registry().contexts)
+
+        # Iterate the contexts and build a list of 'elements'/'potential tests'
+        elements = self.extract_elements(behaviours, contexts)
+
         # Allow each Captured Element a chance to Resolve its args.
         # This allows the Contexts to determine what args have been
         # called, which lets them decide if a function is a fixture 
         # or a test (if not labeled as such).
         if line is None:
-            elements = self.resolve_contexts(get_registry().contexts)
             self.resolve_and_build(elements)
             return
 
@@ -118,39 +123,42 @@ class WithSpecCollector(object):
                 elements.append(element)
         self.resolve_and_build(elements)
 
-    def resolve_contexts(self, contexts):
-        # We don't want to use a generator here
-        # as we need the stack to be fully iterated prior to resolving
-        # And the list of elements will need iterating multiple times
+    def resolve_contexts(self, all_contexts):
+        behaviours = {}
+        contexts = []
+        for context in all_contexts:
+            if context.shared():
+                behaviours[context.name] = context
+            else:
+                contexts.append(context)
+        return behaviours, contexts
+
+    def extract_elements(self, behaviours, contexts):
         elements = []
         for context in contexts:
+            context.finalise()
             for element in context.elements['tests']:
                 elements.append(element)
             # Add any behaviours
             for behaviour_name in context.behaviour_names:
-                pass    
+                if behaviour_name not in behaviours:
+                    log.debug('Requested unknown shared group `%s` for'
+                              ' context `%s`', 
+                              behaviour_name, context.name)
+                    elements.append(TestElement(key=behaviour_name,
+                                                name=behaviour_name,
+                                                actual=None,
+                                                context=context,
+                                                tags=['pending']))
+                else:
+                    log.debug('Adding behaviour `%s` to context `%s`', 
+                              behaviour_name, context.name)
+                    new_context = behaviours[behaviour_name].\
+                                    create_context(parent=context)
+
             # Iterate child contexts
-            elements.extend(self.resolve_contexts(context.children))
+            elements.extend(self.extract_elements(behaviours, context.children))
         return elements
-
-        #    for shared_name in context.pop_behaviours():
-        #        if shared_name not in shared:
-        #            log.debug('Requested unknown shared group `%s` for'
-        #                      ' context `%s`', 
-        #                      shared_name, context.name)
-        #            # Add a 'mock' Test with the tag set to pending
-        #            # so that the user knows that shared group is here
-        #            elements.append(TestElement(key=shared_name,
-        #                                        name=shared_name,
-        #                                        actual=None,
-        #                                        context=context,
-        #                                        tags=['pending']))
-        #        else:
-        #            log.debug('Adding behaviour `%s` to context `%s`', 
-        #                      shared_name, context.name)
-        #            for shared_element in shared[shared_name]:
-
-        #                elements.append(TestElement(shared_element))
 
     def resolve_and_build(self, elements):
         for element in elements:
